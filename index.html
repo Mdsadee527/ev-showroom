@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV Showroom Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">⚡</span>
+      <span class="brand-name">EV Showroom</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-tab="dashboard">
+        <span class="nav-icon">◧</span> Dashboard
+      </button>
+      <button class="nav-item" data-tab="stock">
+        <span class="nav-icon">▤</span> Stock &amp; Purchase
+      </button>
+      <button class="nav-item" data-tab="sales">
+        <span class="nav-icon">↗</span> Sales
+      </button>
+      <button class="nav-item" data-tab="expenses">
+        <span class="nav-icon">−</span> Expenses
+      </button>
+      <button class="nav-item" data-tab="reports">
+        <span class="nav-icon">▦</span> Reports
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <label class="currency-field">
+        <span>Currency symbol</span>
+        <input type="text" id="settings-currency" maxlength="3" value="₹">
+      </label>
+      <button class="btn btn-ghost btn-sm" id="theme-toggle" type="button">Toggle theme</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="tab-panel">
+      <header class="panel-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="subtitle">Live snapshot of your showroom</p>
+        </div>
+      </header>
+
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2>Monthly profit trend</h2>
+            <p class="card-sub">Last 12 months</p>
+          </div>
+          <div id="profit-chart" class="chart-wrap"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Recent sales</h2>
+            <p class="card-sub">Last 5 transactions</p>
+          </div>
+          <div id="recent-sales" class="mini-table-wrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STOCK & PURCHASE -->
+    <section id="tab-stock" class="tab-panel hidden">
+      <header class="panel-header">
+        <div>
+          <h1>Stock &amp; Purchase</h1>
+          <p class="subtitle">Every vehicle you've bought, in stock or sold</p>
+        </div>
+        <button class="btn btn-primary" id="btn-add-vehicle" type="button">+ Add vehicle</button>
+      </header>
+
+      <div class="toolbar">
+        <input type="search" id="stock-search" placeholder="Search model, reg no, VIN...">
+        <select id="stock-filter">
+          <option value="all">All vehicles</option>
+          <option value="in_stock">In stock</option>
+          <option value="sold">Sold</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table id="table-vehicles">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Reg / VIN</th>
+              <th>Purchase date</th>
+              <th class="num">Purchase price</th>
+              <th>Supplier</th>
+              <th>Status</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="empty-state hidden" id="stock-empty">No vehicles yet. Add your first purchase to get started.</p>
+    </section>
+
+    <!-- SALES -->
+    <section id="tab-sales" class="tab-panel hidden">
+      <header class="panel-header">
+        <div>
+          <h1>Sales</h1>
+          <p class="subtitle">Profit is calculated automatically per sale</p>
+        </div>
+        <button class="btn btn-primary" id="btn-add-sale" type="button">+ Record sale</button>
+      </header>
+
+      <div class="table-wrap">
+        <table id="table-sales">
+          <thead>
+            <tr>
+              <th>Vehicle</th>
+              <th>Sale date</th>
+              <th>Buyer</th>
+              <th class="num">Sale price</th>
+              <th class="num">Purchase price</th>
+              <th class="num">Expenses</th>
+              <th class="num">Profit</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="empty-state hidden" id="sales-empty">No sales recorded yet.</p>
+    </section>
+
+    <!-- EXPENSES -->
+    <section id="tab-expenses" class="tab-panel hidden">
+      <header class="panel-header">
+        <div>
+          <h1>Expenses</h1>
+          <p class="subtitle">Per-vehicle costs and general overhead</p>
+        </div>
+        <button class="btn btn-primary" id="btn-add-expense" type="button">+ Add expense</button>
+      </header>
+
+      <div class="table-wrap">
+        <table id="table-expenses">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Linked vehicle</th>
+              <th class="num">Amount</th>
+              <th>Notes</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="empty-state hidden" id="expenses-empty">No expenses recorded yet.</p>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="tab-reports" class="tab-panel hidden">
+      <header class="panel-header">
+        <div>
+          <h1>Reports</h1>
+          <p class="subtitle">Break down performance by day, month, or year</p>
+        </div>
+        <div class="segmented" id="report-period">
+          <button class="segmented-btn active" data-period="daily">Daily</button>
+          <button class="segmented-btn" data-period="monthly">Monthly</button>
+          <button class="segmented-btn" data-period="yearly">Yearly</button>
+        </div>
+      </header>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Net profit by period</h2>
+          <p class="card-sub" id="report-chart-sub"></p>
+        </div>
+        <div id="report-chart" class="chart-wrap"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="table-report">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th class="num">Vehicles sold</th>
+              <th class="num">Revenue</th>
+              <th class="num">Purchase cost</th>
+              <th class="num">Expenses</th>
+              <th class="num">Net profit</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="empty-state hidden" id="report-empty">No sales in this range yet.</p>
+    </section>
+
+  </main>
+</div>
+
+<!-- Add / Edit Vehicle -->
+<dialog id="dlg-vehicle">
+  <form method="dialog" id="form-vehicle" class="dlg-form">
+    <h2 id="vehicle-dlg-title">Add vehicle</h2>
+    <input type="hidden" id="vehicle-id">
+    <div class="field-grid">
+      <label>Model / name<input type="text" id="vehicle-model" required placeholder="e.g. Tata Nexon EV"></label>
+      <label>Variant / color<input type="text" id="vehicle-variant" placeholder="e.g. XZ+, White"></label>
+      <label>Reg no. / VIN<input type="text" id="vehicle-reg" placeholder="e.g. DL01AB1234"></label>
+      <label>Purchase date<input type="date" id="vehicle-date" required></label>
+      <label>Purchase price<input type="number" id="vehicle-price" min="0" step="1" required></label>
+      <label>Supplier<input type="text" id="vehicle-supplier" placeholder="e.g. Authorized dealer"></label>
+    </div>
+    <label class="full">Notes<textarea id="vehicle-notes" rows="2"></textarea></label>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Save vehicle</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Record Sale -->
+<dialog id="dlg-sale">
+  <form method="dialog" id="form-sale" class="dlg-form">
+    <h2>Record sale</h2>
+    <input type="hidden" id="sale-id">
+    <div class="field-grid">
+      <label class="full">Vehicle<select id="sale-vehicle" required></select></label>
+      <label>Sale date<input type="date" id="sale-date" required></label>
+      <label>Sale price<input type="number" id="sale-price" min="0" step="1" required></label>
+      <label>Buyer name<input type="text" id="sale-buyer" placeholder="e.g. Rahul Verma"></label>
+      <label>Buyer contact<input type="text" id="sale-contact" placeholder="Phone / email"></label>
+    </div>
+    <label class="full">Notes<textarea id="sale-notes" rows="2"></textarea></label>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Save sale</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Add / Edit Expense -->
+<dialog id="dlg-expense">
+  <form method="dialog" id="form-expense" class="dlg-form">
+    <h2 id="expense-dlg-title">Add expense</h2>
+    <input type="hidden" id="expense-id">
+    <div class="field-grid">
+      <label>Date<input type="date" id="expense-date" required></label>
+      <label>Category
+        <select id="expense-category">
+          <option>Transport</option>
+          <option>Registration</option>
+          <option>Marketing</option>
+          <option>Service &amp; repair</option>
+          <option>Staff</option>
+          <option>Rent &amp; utilities</option>
+          <option>Other</option>
+        </select>
+      </label>
+      <label>Amount<input type="number" id="expense-amount" min="0" step="1" required></label>
+      <label>Linked vehicle (optional)
+        <select id="expense-vehicle">
+          <option value="">General / overhead</option>
+        </select>
+      </label>
+    </div>
+    <label class="full">Notes<textarea id="expense-notes" rows="2"></textarea></label>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Save expense</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="chart-tooltip" class="chart-tooltip hidden"></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
