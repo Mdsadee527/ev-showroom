@@ -76,6 +76,16 @@
         <div class="stepper" id="stock-flow"></div>
       </div>
 
+      <div class="card" id="inventory-value-card">
+        <div class="card-header">
+          <div>
+            <h2>Current inventory value &amp; expected profit</h2>
+            <p class="card-sub" id="inventory-value-sub">Based on purchase price and expected selling price of unsold stock</p>
+          </div>
+        </div>
+        <div id="inventory-value"></div>
+      </div>
+
       <div class="grid-2">
         <div class="card">
           <div class="card-header">
@@ -133,6 +143,8 @@
               <th>Reg / VIN</th>
               <th>Purchase date</th>
               <th class="num">Purchase price</th>
+              <th class="num">Expected sale price</th>
+              <th class="num">Expected profit</th>
               <th>Supplier</th>
               <th>Status</th>
               <th class="actions-col">Actions</th>
@@ -256,6 +268,7 @@
       <label>Reg no. / VIN<input type="text" id="vehicle-reg" placeholder="e.g. DL01AB1234"></label>
       <label>Purchase date<input type="date" id="vehicle-date" required></label>
       <label>Purchase price<input type="number" id="vehicle-price" min="0" step="1" required></label>
+      <label>Expected selling price<input type="number" id="vehicle-expected-price" min="0" step="1" placeholder="Optional — leave blank if unknown"></label>
       <label>Supplier<input type="text" id="vehicle-supplier" placeholder="e.g. Authorized dealer"></label>
     </div>
     <label class="full">Notes<textarea id="vehicle-notes" rows="2"></textarea></label>

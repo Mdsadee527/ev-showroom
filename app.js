@@ -8,7 +8,9 @@
     expenses: "evshowroom.expenses",
     settings: "evshowroom.settings",
     theme: "evshowroom.theme",
+    dataVersion: "evshowroom.dataVersion",
   };
+  const CURRENT_SEED_VERSION = "2"; // bump to force-replace stored data with a new seed on next load
 
   function load(key, fallback) {
     try {
@@ -34,66 +36,36 @@
     save(KEYS.settings, settings);
   }
 
-  /* ================= sample data (first run only) ================= */
-  function seedDemoDataIfEmpty() {
-    if (vehicles.length || sales.length || expenses.length) return;
+  /* ================= starting inventory ================= */
+  // Re-seeds whenever CURRENT_SEED_VERSION changes, replacing whatever is stored —
+  // used once here to swap the earlier demo cars for the real current stock.
+  function applySeedIfVersionMismatch() {
+    if (load(KEYS.dataVersion, null) === CURRENT_SEED_VERSION) return;
 
-    const D = "Tata Motors Authorized Dealer";
-    const M = "MG Motor India";
+    const today = todayISO();
+    const ZELIO = "Zelio E-Vehicles";
+    const CHINA = "Chinese Import";
     const seedVehicles = [
-      // -- opening stock: purchased before August (15 vehicles) --
-      { id: "veh1", model: "Tata Nexon EV", variant: "Empowered LR", reg: "WB20AB1001", purchaseDate: "2026-06-03", purchasePrice: 1380000, supplier: D, notes: "", status: "sold" },
-      { id: "veh2", model: "Tata Tiago EV", variant: "XZ+ Tech Lux", reg: "WB20AB1002", purchaseDate: "2026-06-05", purchasePrice: 760000, supplier: D, notes: "", status: "in_stock" },
-      { id: "veh3", model: "Tata Punch EV", variant: "Adventure", reg: "WB20AB1003", purchaseDate: "2026-06-08", purchasePrice: 960000, supplier: D, notes: "", status: "sold" },
-      { id: "veh4", model: "MG ZS EV", variant: "Excite", reg: "WB20AB1004", purchaseDate: "2026-06-10", purchasePrice: 1980000, supplier: M, notes: "", status: "in_stock" },
-      { id: "veh5", model: "MG Comet EV", variant: "Pace", reg: "WB20AB1005", purchaseDate: "2026-06-12", purchasePrice: 660000, supplier: M, notes: "", status: "sold" },
-      { id: "veh6", model: "Hyundai Kona Electric", variant: "Premium", reg: "WB20AB1006", purchaseDate: "2026-06-15", purchasePrice: 2250000, supplier: "Hyundai Motor India", notes: "", status: "in_stock" },
-      { id: "veh7", model: "Mahindra XUV400", variant: "EC", reg: "WB20AB1007", purchaseDate: "2026-06-18", purchasePrice: 1520000, supplier: "Mahindra Dealership", notes: "", status: "in_stock" },
-      { id: "veh8", model: "Citroën eC3", variant: "Live", reg: "WB20AB1008", purchaseDate: "2026-06-20", purchasePrice: 1160000, supplier: "Citroën India", notes: "", status: "sold" },
-      { id: "veh9", model: "Tata Nexon EV", variant: "Creative LR", reg: "WB20AB1009", purchaseDate: "2026-06-22", purchasePrice: 1400000, supplier: D, notes: "", status: "in_stock" },
-      { id: "veh10", model: "Tata Tiago EV", variant: "XE", reg: "WB20AB1010", purchaseDate: "2026-06-25", purchasePrice: 740000, supplier: D, notes: "", status: "in_stock" },
-      { id: "veh11", model: "BYD Atto 3", variant: "Superior", reg: "WB20AB1011", purchaseDate: "2026-06-28", purchasePrice: 3250000, supplier: "BYD India", notes: "", status: "in_stock" },
-      { id: "veh12", model: "Tata Punch EV", variant: "Empowered", reg: "WB20AB1012", purchaseDate: "2026-07-02", purchasePrice: 980000, supplier: D, notes: "", status: "sold" },
-      { id: "veh13", model: "MG ZS EV", variant: "Exclusive", reg: "WB20AB1013", purchaseDate: "2026-07-06", purchasePrice: 2020000, supplier: M, notes: "", status: "in_stock" },
-      { id: "veh14", model: "Hyundai Kona Electric", variant: "Base", reg: "WB20AB1014", purchaseDate: "2026-07-10", purchasePrice: 2180000, supplier: "Hyundai Motor India", notes: "", status: "in_stock" },
-      { id: "veh15", model: "Tata Nexon EV", variant: "Fearless LR", reg: "WB20AB1015", purchaseDate: "2026-07-15", purchasePrice: 1420000, supplier: D, notes: "", status: "in_stock" },
-      // -- purchased during August (7 vehicles) --
-      { id: "veh16", model: "Tata Tiago EV", variant: "XZ+", reg: "WB20AB1016", purchaseDate: "2026-08-03", purchasePrice: 770000, supplier: D, notes: "", status: "sold" },
-      { id: "veh17", model: "MG Comet EV", variant: "Pace", reg: "WB20AB1017", purchaseDate: "2026-08-06", purchasePrice: 670000, supplier: M, notes: "", status: "in_stock" },
-      { id: "veh18", model: "Tata Punch EV", variant: "Adventure Rugged", reg: "WB20AB1018", purchaseDate: "2026-08-09", purchasePrice: 970000, supplier: D, notes: "", status: "sold" },
-      { id: "veh19", model: "Citroën eC3", variant: "Live", reg: "WB20AB1019", purchaseDate: "2026-08-13", purchasePrice: 1170000, supplier: "Citroën India", notes: "", status: "in_stock" },
-      { id: "veh20", model: "Tata Nexon EV", variant: "Creative LR", reg: "WB20AB1020", purchaseDate: "2026-08-17", purchasePrice: 1410000, supplier: D, notes: "", status: "sold" },
-      { id: "veh21", model: "Mahindra XUV400", variant: "EL Pro", reg: "WB20AB1021", purchaseDate: "2026-08-21", purchasePrice: 1540000, supplier: "Mahindra Dealership", notes: "", status: "in_stock" },
-      { id: "veh22", model: "MG ZS EV", variant: "Excite", reg: "WB20AB1022", purchaseDate: "2026-08-25", purchasePrice: 2000000, supplier: M, notes: "", status: "in_stock" },
-    ];
-
-    const seedSales = [
-      { id: "sale1", vehicleId: "veh1", saleDate: "2026-08-04", salePrice: 1510000, buyer: "Arindam Banerjee", contact: "", notes: "" },
-      { id: "sale2", vehicleId: "veh3", saleDate: "2026-08-07", salePrice: 1045000, buyer: "Sunita Roy", contact: "", notes: "" },
-      { id: "sale3", vehicleId: "veh5", saleDate: "2026-08-09", salePrice: 725000, buyer: "Kabir Sen", contact: "", notes: "" },
-      { id: "sale4", vehicleId: "veh8", saleDate: "2026-08-12", salePrice: 1255000, buyer: "Priya Dutta", contact: "", notes: "" },
-      { id: "sale5", vehicleId: "veh12", saleDate: "2026-08-15", salePrice: 1065000, buyer: "Rohan Ghosh", contact: "", notes: "" },
-      { id: "sale6", vehicleId: "veh16", saleDate: "2026-08-19", salePrice: 845000, buyer: "Ananya Chatterjee", contact: "", notes: "" },
-      { id: "sale7", vehicleId: "veh18", saleDate: "2026-08-23", salePrice: 1055000, buyer: "Vikram Saha", contact: "", notes: "" },
-      { id: "sale8", vehicleId: "veh20", saleDate: "2026-08-28", salePrice: 1545000, buyer: "Meera Iyer", contact: "", notes: "" },
-    ];
-
-    const seedExpenses = [
-      { id: "exp1", date: "2026-08-02", category: "Transport", amount: 8000, vehicleId: "veh16", notes: "Transport from Pune plant" },
-      { id: "exp2", date: "2026-08-05", category: "Registration", amount: 22000, vehicleId: "veh3", notes: "RTO registration + road tax" },
-      { id: "exp3", date: "2026-08-10", category: "Marketing", amount: 15000, vehicleId: null, notes: "Instagram + local newspaper ads" },
-      { id: "exp4", date: "2026-08-14", category: "Service & repair", amount: 6500, vehicleId: "veh8", notes: "Pre-delivery inspection & detailing" },
-      { id: "exp5", date: "2026-08-18", category: "Staff", amount: 45000, vehicleId: null, notes: "Sales staff incentive – August" },
-      { id: "exp6", date: "2026-08-22", category: "Rent & utilities", amount: 60000, vehicleId: null, notes: "Showroom rent – August" },
-      { id: "exp7", date: "2026-08-26", category: "Transport", amount: 9000, vehicleId: "veh21", notes: "Vehicle transport charges" },
+      { id: "veh1", model: "Zelio Eco ZX", variant: "Unit 1", reg: "", purchaseDate: today, purchasePrice: 52000, expectedSalePrice: 65000, supplier: ZELIO, notes: "", status: "in_stock" },
+      { id: "veh2", model: "Zelio Eco ZX", variant: "Unit 2", reg: "", purchaseDate: today, purchasePrice: 52000, expectedSalePrice: 65000, supplier: ZELIO, notes: "", status: "in_stock" },
+      { id: "veh3", model: "Zelio Eva", variant: "", reg: "", purchaseDate: today, purchasePrice: 54000, expectedSalePrice: 70000, supplier: ZELIO, notes: "", status: "in_stock" },
+      { id: "veh4", model: "Zelio Gracy Plus", variant: "", reg: "", purchaseDate: today, purchasePrice: 56000, expectedSalePrice: 75000, supplier: ZELIO, notes: "", status: "in_stock" },
+      { id: "veh5", model: "Zelio Eva ZX", variant: "", reg: "", purchaseDate: today, purchasePrice: 65000, expectedSalePrice: 89000, supplier: ZELIO, notes: "", status: "in_stock" },
+      { id: "veh6", model: "Chinese E-Scooter #1", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+      { id: "veh7", model: "Chinese E-Scooter #2", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+      { id: "veh8", model: "Chinese E-Scooter #3", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+      { id: "veh9", model: "Chinese E-Scooter #4", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+      { id: "veh10", model: "Chinese E-Scooter #5", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+      { id: "veh11", model: "Chinese E-Scooter #6", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
     ];
 
     vehicles = seedVehicles;
-    sales = seedSales;
-    expenses = seedExpenses;
+    sales = [];
+    expenses = [];
     persist();
+    save(KEYS.dataVersion, CURRENT_SEED_VERSION);
   }
-  seedDemoDataIfEmpty();
+  applySeedIfVersionMismatch();
 
   /* ================= icon library ================= */
   const ICONS = {
@@ -107,6 +79,7 @@
     receipt: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
     award: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><polyline points="8.5 13.5 7 22 12 19 17 22 15.5 13.5"/></svg>',
     arrowRight: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+    info: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="11"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
   };
 
   /* ================= helpers ================= */
@@ -303,6 +276,7 @@
     document.getElementById("vehicle-reg").value = v.reg || "";
     document.getElementById("vehicle-date").value = v.purchaseDate || todayISO();
     document.getElementById("vehicle-price").value = v.purchasePrice || 0;
+    document.getElementById("vehicle-expected-price").value = v.expectedSalePrice || "";
     document.getElementById("vehicle-supplier").value = v.supplier || "";
     document.getElementById("vehicle-notes").value = v.notes || "";
     openDialog("dlg-vehicle");
@@ -318,6 +292,7 @@
       reg: document.getElementById("vehicle-reg").value.trim(),
       purchaseDate: document.getElementById("vehicle-date").value,
       purchasePrice: Number(document.getElementById("vehicle-price").value || 0),
+      expectedSalePrice: document.getElementById("vehicle-expected-price").value === "" ? null : Number(document.getElementById("vehicle-expected-price").value),
       supplier: document.getElementById("vehicle-supplier").value.trim(),
       notes: document.getElementById("vehicle-notes").value.trim(),
       status: existing ? existing.status : "in_stock",
@@ -465,11 +440,15 @@
           v.status === "sold"
             ? '<span class="badge badge-sold">Sold</span>'
             : '<span class="badge badge-instock">In stock</span>';
+        const hasExpected = v.expectedSalePrice != null && v.expectedSalePrice > 0;
+        const expectedProfit = hasExpected ? v.expectedSalePrice - Number(v.purchasePrice || 0) : null;
         tr.innerHTML =
           "<td><div class=\"vehicle-cell\"><span class=\"vehicle-avatar\">" + ICONS.car + "</span>" + escapeHtml(vehicleLabel(v)) + "</div></td>" +
           "<td>" + escapeHtml(v.reg || "—") + "</td>" +
           "<td>" + formatDate(v.purchaseDate) + "</td>" +
           "<td class=\"num\">" + formatMoney(v.purchasePrice) + "</td>" +
+          "<td class=\"num\">" + (hasExpected ? formatMoney(v.expectedSalePrice) : "—") + "</td>" +
+          "<td class=\"num " + (hasExpected ? (expectedProfit >= 0 ? "profit-pos" : "profit-neg") : "") + "\">" + (hasExpected ? formatMoney(expectedProfit) : "—") + "</td>" +
           "<td>" + escapeHtml(v.supplier || "—") + "</td>" +
           "<td>" + badge + "</td>" +
           "<td class=\"actions-col\"></td>";
@@ -647,8 +626,10 @@
       {
         cls: "profit", icon: ICONS.award,
         label: "Net profit", value: formatMoney(summary.profit),
-        sub: summary.profit >= 0 ? "Profitable · " + marginPct + "% margin" : "Running at a loss",
-        valueCls: summary.profit >= 0 ? "good" : "critical",
+        sub: summary.soldList.length === 0
+          ? "No sales recorded yet"
+          : (summary.profit >= 0 ? "Profitable · " + marginPct + "% margin" : "Running at a loss"),
+        valueCls: summary.soldList.length === 0 ? "" : (summary.profit >= 0 ? "good" : "critical"),
       },
     ];
 
@@ -665,6 +646,7 @@
     });
 
     renderStockFlow(summary);
+    renderInventoryValue();
     renderRevenueBreakdown(summary);
 
     // recent sales mini table
@@ -733,6 +715,47 @@
         html += '<div class="stepper-arrow">' + ICONS.arrowRight + "</div>";
       }
     });
+    el.innerHTML = html;
+  }
+
+  /* ---------- current inventory value & expected profit ---------- */
+  function renderInventoryValue() {
+    const el = document.getElementById("inventory-value");
+    if (!el) return;
+
+    const inStock = vehicles.filter((v) => v.status === "in_stock");
+    const priced = inStock.filter((v) => v.expectedSalePrice != null && v.expectedSalePrice > 0);
+    const pending = inStock.filter((v) => !(v.expectedSalePrice != null && v.expectedSalePrice > 0));
+
+    if (inStock.length === 0) {
+      el.innerHTML = '<p class="mini-empty">No vehicles currently in stock.</p>';
+      return;
+    }
+
+    const stockValue = inStock.reduce((s, v) => s + Number(v.purchasePrice || 0), 0);
+    const expectedRevenue = priced.reduce((s, v) => s + Number(v.expectedSalePrice || 0), 0);
+    const expectedCost = priced.reduce((s, v) => s + Number(v.purchasePrice || 0), 0);
+    const expectedProfit = expectedRevenue - expectedCost;
+
+    let html = '<div class="inventory-grid">' +
+      '<div class="inventory-item"><div class="inventory-item-label">Stock value invested</div>' +
+      '<div class="inventory-item-value">' + formatMoney(stockValue) + '</div>' +
+      '<div class="inventory-item-sub">' + inStock.length + ' vehicles in stock</div></div>' +
+      '<div class="inventory-item"><div class="inventory-item-label">Expected revenue</div>' +
+      '<div class="inventory-item-value">' + (priced.length ? formatMoney(expectedRevenue) : "—") + '</div>' +
+      '<div class="inventory-item-sub">from ' + priced.length + ' priced vehicle' + (priced.length === 1 ? "" : "s") + '</div></div>' +
+      '<div class="inventory-item"><div class="inventory-item-label">Expected profit</div>' +
+      '<div class="inventory-item-value ' + (priced.length ? (expectedProfit >= 0 ? "good" : "critical") : "") + '">' + (priced.length ? formatMoney(expectedProfit) : "—") + '</div>' +
+      '<div class="inventory-item-sub">if sold at expected price</div></div>' +
+      "</div>";
+
+    if (pending.length > 0) {
+      const suppliers = pending.map((v) => v.supplier || "unlisted supplier").filter((s, i, a) => a.indexOf(s) === i);
+      html += '<div class="inventory-note">' + ICONS.info + '<span>' + pending.length + ' vehicle' + (pending.length === 1 ? "" : "s") +
+        ' (' + escapeHtml(suppliers.join(", ")) +
+        ') still need an expected selling price — add one via Edit to include them in expected profit.</span></div>';
+    }
+
     el.innerHTML = html;
   }
 
