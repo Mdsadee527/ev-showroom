@@ -36,6 +36,8 @@
     gstin: "",
     address: "",
     state: "",
+    mobile: "",
+    email: "",
     hsnCode: "8711",
     gstRate: 5,
     invoicePrefix: "INV",
@@ -121,6 +123,8 @@
         hsnCode: business.hsnCode || "8711",
         buyerName: "",
         buyerAddress: "",
+        buyerMobile: "",
+        buyerEmail: "",
         buyerGstin: "",
         buyerState: "",
         interState: false,
@@ -316,63 +320,163 @@
     return invoices.find((i) => i.saleId === saleId);
   }
 
+  /* ---------- Indian-format amount in words ---------- */
+  function numberToWordsIndian(num) {
+    const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+      "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    function twoDigits(n) {
+      if (n < 20) return ones[n];
+      return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
+    }
+    function threeDigits(n) {
+      if (n >= 100) return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " " + twoDigits(n % 100) : "");
+      return twoDigits(n);
+    }
+    if (num === 0) return "Zero";
+    let crore = Math.floor(num / 10000000); num %= 10000000;
+    let lakh = Math.floor(num / 100000); num %= 100000;
+    let thousand = Math.floor(num / 1000); num %= 1000;
+    const parts = [];
+    if (crore) parts.push(threeDigits(crore) + " Crore");
+    if (lakh) parts.push(threeDigits(lakh) + " Lakh");
+    if (thousand) parts.push(threeDigits(thousand) + " Thousand");
+    if (num) parts.push(threeDigits(num));
+    return parts.join(" ");
+  }
+
+  function amountInWords(amount) {
+    const rupees = Math.floor(amount);
+    const paise = Math.round((amount - rupees) * 100);
+    let words = "Rupees " + numberToWordsIndian(rupees);
+    if (paise) words += " and " + numberToWordsIndian(paise) + " Paise";
+    return words + " Only";
+  }
+
+  /* ---------- printable tax invoice (dealer DMS style) ---------- */
   function buildInvoiceHtml(inv) {
-    const taxRow = inv.interState
-      ? '<tr><td>IGST (' + inv.gstRate + '%)</td><td class="num">' + formatMoney(inv.igst) + "</td></tr>"
-      : '<tr><td>CGST (' + (inv.gstRate / 2) + '%)</td><td class="num">' + formatMoney(inv.cgst) + "</td></tr>" +
-        '<tr><td>SGST (' + (inv.gstRate / 2) + '%)</td><td class="num">' + formatMoney(inv.sgst) + "</td></tr>";
+    const gstHalf = inv.gstRate / 2;
+    const gstAmount = inv.interState ? inv.igst : inv.cgst + inv.sgst;
+    const now = new Date();
+    const printedOn = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
+      " " + now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+    const taxCols = inv.interState
+      ? "<th class='num'>IGST (" + inv.gstRate + "%)</th>"
+      : "<th class='num'>CGST (" + gstHalf + "%)</th><th class='num'>SGST (" + gstHalf + "%)</th>";
+    const taxVals = inv.interState
+      ? "<td class='num'>" + formatMoney(inv.igst) + "</td>"
+      : "<td class='num'>" + formatMoney(inv.cgst) + "</td><td class='num'>" + formatMoney(inv.sgst) + "</td>";
 
     return (
       "<!doctype html><html><head><meta charset='utf-8'><title>" + escapeHtml(inv.invoiceNo) + "</title>" +
       "<style>" +
-      "body{font-family:Arial,Helvetica,sans-serif;color:#101322;max-width:720px;margin:32px auto;padding:0 16px;}" +
-      "h1{font-size:20px;margin:0 0 2px;}" +
-      ".muted{color:#565b72;font-size:12.5px;}" +
-      ".head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #101322;padding-bottom:14px;margin-bottom:16px;}" +
-      ".tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#101322;color:#fff;padding:4px 10px;border-radius:4px;margin-bottom:8px;}" +
-      ".meta{text-align:right;font-size:12.5px;}" +
-      ".parties{display:flex;justify-content:space-between;gap:24px;margin-bottom:20px;}" +
-      ".party{flex:1;font-size:12.5px;}" +
-      ".party b{display:block;font-size:13.5px;margin-bottom:4px;}" +
-      "table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;}" +
-      "th,td{padding:8px 6px;text-align:left;border-bottom:1px solid #d8dae3;}" +
-      "th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#565b72;}" +
+      "*{box-sizing:border-box;}" +
+      "body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:11px;max-width:800px;margin:24px auto;padding:0 16px;}" +
+      "table{width:100%;border-collapse:collapse;}" +
+      "td,th{border:1px solid #000;padding:5px 7px;text-align:left;vertical-align:top;font-size:11px;}" +
+      "th{font-weight:700;background:#f2f2f2;}" +
       ".num{text-align:right;}" +
-      ".totals{width:280px;margin-left:auto;margin-top:8px;}" +
-      ".totals td{border-bottom:none;padding:4px 6px;}" +
-      ".totals .grand td{border-top:2px solid #101322;font-weight:700;font-size:15px;padding-top:8px;}" +
-      ".foot{margin-top:48px;display:flex;justify-content:space-between;align-items:flex-end;font-size:12px;color:#565b72;}" +
-      ".sign{text-align:center;}" +
-      ".sign .line{margin-top:36px;border-top:1px solid #101322;padding-top:4px;width:180px;}" +
-      "@media print{.noprint{display:none;}}" +
+      ".no-border td,.no-border th{border:none;}" +
+      "b,strong{font-weight:700;}" +
+      ".topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}" +
+      ".qr{width:74px;height:74px;border:1px solid #000;display:flex;align-items:center;justify-content:center;font-size:9px;text-align:center;color:#555;}" +
+      ".doctitle{font-size:19px;font-weight:700;letter-spacing:.03em;text-align:center;flex:1;}" +
+      ".copytype{font-size:11px;font-weight:700;text-align:right;width:74px;white-space:nowrap;}" +
+      "table.parties td{padding:8px 10px;}" +
+      ".party-label{font-weight:700;margin-bottom:4px;display:block;}" +
+      ".party-name{font-weight:700;font-size:12px;}" +
+      ".row-label{font-weight:700;display:inline-block;min-width:78px;}" +
+      "table.meta td{text-align:center;font-weight:700;}" +
+      "table.items td, table.items th{font-size:10.5px;}" +
+      ".item-desc-main{font-weight:700;}" +
+      ".item-desc-sub{color:#333;}" +
+      "table.subtotal td{font-weight:700;}" +
+      ".payable{margin-top:-1px;}" +
+      ".payable td{font-weight:700;font-size:12px;}" +
+      ".words td{font-weight:700;}" +
+      ".reverse{margin:10px 0;font-size:11px;}" +
+      ".signblock{margin-top:46px;display:flex;justify-content:flex-end;}" +
+      ".signblock .box{text-align:center;font-size:11px;}" +
+      ".signblock .line{border-top:1px solid #000;margin-top:40px;padding-top:4px;min-width:200px;}" +
+      ".disclaimer{text-align:center;font-weight:700;font-size:11px;margin:22px 0 14px;}" +
+      ".pagefoot{display:flex;justify-content:space-between;border-top:1px solid #000;padding-top:6px;font-size:10.5px;}" +
+      "@media print{.noprint{display:none;}body{margin:0 auto;}}" +
       "</style></head><body>" +
-      "<div class='head'>" +
-      "<div><span class='tag'>Tax Invoice</span><h1>" + escapeHtml(business.name || "Your Business Name") + "</h1>" +
-      "<div class='muted'>" + escapeHtml(business.address || "") + "</div>" +
-      "<div class='muted'>" + (business.state ? "State: " + escapeHtml(business.state) + " · " : "") + "GSTIN: " + escapeHtml(business.gstin || "—") + "</div>" +
+
+      "<div class='topbar'>" +
+      "<div class='qr'>QR Code</div>" +
+      "<div class='doctitle'>TAX INVOICE</div>" +
+      "<div class='copytype'>ORIGINAL FOR<br>RECIPIENT</div>" +
       "</div>" +
-      "<div class='meta'><div><b>Invoice #</b> " + escapeHtml(inv.invoiceNo) + "</div>" +
-      "<div><b>Date:</b> " + formatDate(inv.date) + "</div>" +
-      "<div><b>Place of supply:</b> " + escapeHtml(inv.buyerState || "—") + "</div>" +
-      "<div><b>Supply type:</b> " + (inv.interState ? "Inter-state" : "Intra-state") + "</div></div>" +
-      "</div>" +
-      "<div class='parties'>" +
-      "<div class='party'><b>Bill To</b>" +
-      escapeHtml(inv.buyerName || "Customer") + "<br>" +
+
+      "<table class='parties'><tr>" +
+      "<td style='width:34%'>" +
+      "<span class='party-label'>Billed To:</span>" +
+      "<span class='party-name'>" + escapeHtml(inv.buyerName || "Cash Customer") + "</span><br>" +
       (inv.buyerAddress ? escapeHtml(inv.buyerAddress) + "<br>" : "") +
-      (inv.buyerState ? escapeHtml(inv.buyerState) + "<br>" : "") +
-      "GSTIN: " + escapeHtml(inv.buyerGstin || "Unregistered (B2C)") +
-      "</div>" +
-      "</div>" +
-      "<table><thead><tr><th>Description</th><th>HSN/SAC</th><th class='num'>Qty</th><th class='num'>Taxable value</th></tr></thead>" +
-      "<tbody><tr><td>" + escapeHtml(inv.vehicleLabel) + "</td><td>" + escapeHtml(inv.hsnCode || "—") + "</td><td class='num'>1</td><td class='num'>" + formatMoney(inv.taxableValue) + "</td></tr></tbody></table>" +
-      "<table class='totals'><tbody>" +
-      "<tr><td>Taxable value</td><td class='num'>" + formatMoney(inv.taxableValue) + "</td></tr>" +
-      taxRow +
-      "<tr class='grand'><td>Total</td><td class='num'>" + formatMoney(inv.total) + "</td></tr>" +
+      (inv.buyerMobile ? "<span class='row-label'>Ph Number</span>: " + escapeHtml(inv.buyerMobile) + "<br>" : "") +
+      (inv.buyerEmail ? "<span class='row-label'>Email</span>: " + escapeHtml(inv.buyerEmail) + "<br>" : "") +
+      "<span class='row-label'>GSTIN</span>: " + escapeHtml(inv.buyerGstin || "Unregistered (B2C)") + "<br>" +
+      "<span class='row-label'>POS</span>: " + escapeHtml(inv.buyerState || "—") +
+      "</td>" +
+      "<td style='width:34%'>" +
+      "<span class='party-label'>Billed From:</span>" +
+      "<span class='party-name'>" + escapeHtml(business.name || "Your Business Name") + "</span><br>" +
+      (business.address ? escapeHtml(business.address) + "<br>" : "") +
+      (business.mobile ? "<span class='row-label'>Mobile</span>: " + escapeHtml(business.mobile) + "<br>" : "") +
+      (business.email ? "<span class='row-label'>Email</span>: " + escapeHtml(business.email) + "<br>" : "") +
+      "<span class='row-label'>GSTIN</span>: " + escapeHtml(business.gstin || "—") +
+      "</td>" +
+      "<td style='width:32%'>" +
+      "<span class='row-label'>Invoice No</span>: " + escapeHtml(inv.invoiceNo) + "<br><br>" +
+      "<span class='row-label'>Invoice Date</span>: " + formatDate(inv.date) +
+      "</td>" +
+      "</tr></table>" +
+
+      "<table class='meta'><tr>" +
+      "<th style='width:34%'>HSN / SAC</th><th style='width:33%'>Supply Type</th><th style='width:33%'>Place of Supply</th>" +
+      "</tr><tr>" +
+      "<td>" + escapeHtml(inv.hsnCode || "—") + "</td>" +
+      "<td>" + (inv.interState ? "Inter-state (IGST)" : "Intra-state (CGST+SGST)") + "</td>" +
+      "<td>" + escapeHtml(inv.buyerState || "—") + "</td>" +
+      "</tr></table>" +
+
+      "<table class='items'><thead><tr>" +
+      "<th style='width:34%'>Item Description &amp; HSN</th><th class='num'>Unit Price</th><th class='num'>Qty</th>" +
+      "<th class='num'>Taxable Amount</th>" + taxCols + "<th class='num'>Total Amount (Rs)</th>" +
+      "</tr></thead><tbody>" +
+      "<tr>" +
+      "<td><span class='item-desc-main'>" + escapeHtml(inv.vehicleLabel) + "</span><br>" +
+      "<span class='item-desc-sub'>HSN: " + escapeHtml(inv.hsnCode || "—") + "</span></td>" +
+      "<td class='num'>" + formatMoney(inv.taxableValue) + "</td>" +
+      "<td class='num'>1</td>" +
+      "<td class='num'>" + formatMoney(inv.taxableValue) + "</td>" +
+      taxVals +
+      "<td class='num'>" + formatMoney(inv.total) + "</td>" +
+      "</tr>" +
       "</tbody></table>" +
-      "<div class='foot'><div>This is a computer-generated invoice.</div>" +
-      "<div class='sign'>For " + escapeHtml(business.name || "the business") + "<div class='line'>Authorised signatory</div></div></div>" +
+
+      "<table class='subtotal no-border'><tr>" +
+      "<td style='width:64%;text-align:right;'>Sub Total</td>" +
+      "<td class='num' style='width:12%'>" + formatMoney(inv.taxableValue) + "</td>" +
+      "<td class='num' style='width:12%'>" + formatMoney(gstAmount) + "</td>" +
+      "<td class='num' style='width:12%'>" + formatMoney(inv.total) + "</td>" +
+      "</tr><tr class='payable'>" +
+      "<td style='text-align:right;' colspan='3'>Net Payable Amount (Rs)</td>" +
+      "<td class='num'>" + formatMoney(inv.total) + "</td>" +
+      "</tr></table>" +
+
+      "<table class='words'><tr><td style='width:22%'>Amount in Words</td><td>" + escapeHtml(amountInWords(inv.total)) + "</td></tr></table>" +
+
+      "<div class='reverse'>Tax amount payable on reverse charges (in Rs.) : <b>NIL</b></div>" +
+
+      "<div class='signblock'><div class='box'>For " + escapeHtml(business.name || "the business") + "<div class='line'>Sign of Customer / Authorised Signatory</div></div></div>" +
+
+      "<div class='disclaimer'>This is a system generated invoice and does not require a physical signature or company seal for authentication.</div>" +
+
+      "<div class='pagefoot'><div>Printed On: " + escapeHtml(printedOn) + "</div><div>Page 1 of 1</div></div>" +
+
       "<div class='noprint' style='margin-top:24px;text-align:center;'><button onclick='window.print()' style='font-size:14px;padding:10px 20px;cursor:pointer;'>Print / Save as PDF</button></div>" +
       "</body></html>"
     );
@@ -437,6 +541,8 @@
     gstin: document.getElementById("biz-gstin"),
     address: document.getElementById("biz-address"),
     state: document.getElementById("biz-state"),
+    mobile: document.getElementById("biz-mobile"),
+    email: document.getElementById("biz-email"),
     hsnCode: document.getElementById("biz-hsn"),
     gstRate: document.getElementById("biz-gst-rate"),
     invoicePrefix: document.getElementById("biz-invoice-prefix"),
@@ -638,7 +744,10 @@
     }
     const v = getVehicle(sale.vehicleId);
     summaryEl.textContent = (v ? vehicleLabel(v) : "Vehicle") + " · Sale price " + formatMoney(sale.salePrice) + " · " + formatDate(sale.saleDate);
-    if (!nameInput.dataset.touched) nameInput.value = sale.buyer || "";
+    if (!nameInput.dataset.touched) {
+      nameInput.value = sale.buyer || "";
+      document.getElementById("invoice-buyer-mobile").value = sale.contact || "";
+    }
   }
 
   function openInvoiceDialog(preselectSaleId) {
@@ -665,6 +774,8 @@
     delete nameInput.dataset.touched;
     nameInput.addEventListener("input", () => { nameInput.dataset.touched = "1"; }, { once: true });
     document.getElementById("invoice-buyer-address").value = "";
+    document.getElementById("invoice-buyer-mobile").value = "";
+    document.getElementById("invoice-buyer-email").value = "";
     document.getElementById("invoice-buyer-gstin").value = "";
     document.getElementById("invoice-buyer-state").value = "";
     document.getElementById("invoice-supply-type").value = "intra";
@@ -696,6 +807,8 @@
       hsnCode: document.getElementById("invoice-hsn").value.trim(),
       buyerName: document.getElementById("invoice-buyer-name").value.trim() || sale.buyer || "",
       buyerAddress: document.getElementById("invoice-buyer-address").value.trim(),
+      buyerMobile: document.getElementById("invoice-buyer-mobile").value.trim() || sale.contact || "",
+      buyerEmail: document.getElementById("invoice-buyer-email").value.trim(),
       buyerGstin: document.getElementById("invoice-buyer-gstin").value.trim(),
       buyerState: document.getElementById("invoice-buyer-state").value.trim(),
       interState,
