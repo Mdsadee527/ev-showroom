@@ -9,6 +9,8 @@
     settings: "evshowroom.settings",
     theme: "evshowroom.theme",
     dataVersion: "evshowroom.dataVersion",
+    business: "evshowroom.business",
+    invoices: "evshowroom.invoices",
   };
   const CURRENT_SEED_VERSION = "3"; // bump to apply a new one-time data migration on next load
 
@@ -28,12 +30,25 @@
   let sales = load(KEYS.sales, []);
   let expenses = load(KEYS.expenses, []);
   let settings = load(KEYS.settings, { currency: "₹" });
+  let invoices = load(KEYS.invoices, []);
+  let business = load(KEYS.business, {
+    name: "",
+    gstin: "",
+    address: "",
+    state: "",
+    hsnCode: "8711",
+    gstRate: 5,
+    invoicePrefix: "INV",
+    nextInvoiceNo: 1,
+  });
 
   function persist() {
     save(KEYS.vehicles, vehicles);
     save(KEYS.sales, sales);
     save(KEYS.expenses, expenses);
     save(KEYS.settings, settings);
+    save(KEYS.invoices, invoices);
+    save(KEYS.business, business);
   }
 
   /* ================= starting inventory & one-time data migrations ================= */
@@ -109,6 +124,9 @@
     award: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><polyline points="8.5 13.5 7 22 12 19 17 22 15.5 13.5"/></svg>',
     arrowRight: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
     info: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="11"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    card: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+    printer: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+    eye: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
   };
 
   /* ================= helpers ================= */
@@ -240,6 +258,111 @@
     };
   }
 
+  /* ================= GST billing ================= */
+  function financialYearLabel(dateISO) {
+    const d = new Date((dateISO || todayISO()) + "T00:00:00");
+    const y = d.getFullYear();
+    const startYear = d.getMonth() + 1 >= 4 ? y : y - 1; // Indian FY starts 1 April
+    return startYear + "-" + String((startYear + 1) % 100).padStart(2, "0");
+  }
+
+  function nextInvoiceNumber(dateISO) {
+    const seq = String(business.nextInvoiceNo || 1).padStart(4, "0");
+    return (business.invoicePrefix || "INV") + "/" + financialYearLabel(dateISO) + "/" + seq;
+  }
+
+  // amount is treated as GST-inclusive (what the customer actually pays); this
+  // backs out the taxable value and splits the tax as CGST+SGST (intra-state)
+  // or IGST (inter-state)
+  function computeGst(amount, gstRatePct, interState) {
+    const rate = Number(gstRatePct || 0);
+    const taxableValue = Math.round((amount / (1 + rate / 100)) * 100) / 100;
+    const gstAmount = Math.round((amount - taxableValue) * 100) / 100;
+    const cgst = interState ? 0 : Math.round((gstAmount / 2) * 100) / 100;
+    const sgst = interState ? 0 : Math.round((gstAmount / 2) * 100) / 100;
+    const igst = interState ? gstAmount : 0;
+    return { taxableValue, gstAmount, cgst, sgst, igst, total: amount };
+  }
+
+  function invoiceForSale(saleId) {
+    return invoices.find((i) => i.saleId === saleId);
+  }
+
+  function buildInvoiceHtml(inv) {
+    const taxRow = inv.interState
+      ? '<tr><td>IGST (' + inv.gstRate + '%)</td><td class="num">' + formatMoney(inv.igst) + "</td></tr>"
+      : '<tr><td>CGST (' + (inv.gstRate / 2) + '%)</td><td class="num">' + formatMoney(inv.cgst) + "</td></tr>" +
+        '<tr><td>SGST (' + (inv.gstRate / 2) + '%)</td><td class="num">' + formatMoney(inv.sgst) + "</td></tr>";
+
+    return (
+      "<!doctype html><html><head><meta charset='utf-8'><title>" + escapeHtml(inv.invoiceNo) + "</title>" +
+      "<style>" +
+      "body{font-family:Arial,Helvetica,sans-serif;color:#101322;max-width:720px;margin:32px auto;padding:0 16px;}" +
+      "h1{font-size:20px;margin:0 0 2px;}" +
+      ".muted{color:#565b72;font-size:12.5px;}" +
+      ".head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #101322;padding-bottom:14px;margin-bottom:16px;}" +
+      ".tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#101322;color:#fff;padding:4px 10px;border-radius:4px;margin-bottom:8px;}" +
+      ".meta{text-align:right;font-size:12.5px;}" +
+      ".parties{display:flex;justify-content:space-between;gap:24px;margin-bottom:20px;}" +
+      ".party{flex:1;font-size:12.5px;}" +
+      ".party b{display:block;font-size:13.5px;margin-bottom:4px;}" +
+      "table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;}" +
+      "th,td{padding:8px 6px;text-align:left;border-bottom:1px solid #d8dae3;}" +
+      "th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#565b72;}" +
+      ".num{text-align:right;}" +
+      ".totals{width:280px;margin-left:auto;margin-top:8px;}" +
+      ".totals td{border-bottom:none;padding:4px 6px;}" +
+      ".totals .grand td{border-top:2px solid #101322;font-weight:700;font-size:15px;padding-top:8px;}" +
+      ".foot{margin-top:48px;display:flex;justify-content:space-between;align-items:flex-end;font-size:12px;color:#565b72;}" +
+      ".sign{text-align:center;}" +
+      ".sign .line{margin-top:36px;border-top:1px solid #101322;padding-top:4px;width:180px;}" +
+      "@media print{.noprint{display:none;}}" +
+      "</style></head><body>" +
+      "<div class='head'>" +
+      "<div><span class='tag'>Tax Invoice</span><h1>" + escapeHtml(business.name || "Your Business Name") + "</h1>" +
+      "<div class='muted'>" + escapeHtml(business.address || "") + "</div>" +
+      "<div class='muted'>" + (business.state ? "State: " + escapeHtml(business.state) + " · " : "") + "GSTIN: " + escapeHtml(business.gstin || "—") + "</div>" +
+      "</div>" +
+      "<div class='meta'><div><b>Invoice #</b> " + escapeHtml(inv.invoiceNo) + "</div>" +
+      "<div><b>Date:</b> " + formatDate(inv.date) + "</div>" +
+      "<div><b>Place of supply:</b> " + escapeHtml(inv.buyerState || "—") + "</div>" +
+      "<div><b>Supply type:</b> " + (inv.interState ? "Inter-state" : "Intra-state") + "</div></div>" +
+      "</div>" +
+      "<div class='parties'>" +
+      "<div class='party'><b>Bill To</b>" +
+      escapeHtml(inv.buyerName || "Customer") + "<br>" +
+      (inv.buyerAddress ? escapeHtml(inv.buyerAddress) + "<br>" : "") +
+      (inv.buyerState ? escapeHtml(inv.buyerState) + "<br>" : "") +
+      "GSTIN: " + escapeHtml(inv.buyerGstin || "Unregistered (B2C)") +
+      "</div>" +
+      "</div>" +
+      "<table><thead><tr><th>Description</th><th>HSN/SAC</th><th class='num'>Qty</th><th class='num'>Taxable value</th></tr></thead>" +
+      "<tbody><tr><td>" + escapeHtml(inv.vehicleLabel) + "</td><td>" + escapeHtml(inv.hsnCode || "—") + "</td><td class='num'>1</td><td class='num'>" + formatMoney(inv.taxableValue) + "</td></tr></tbody></table>" +
+      "<table class='totals'><tbody>" +
+      "<tr><td>Taxable value</td><td class='num'>" + formatMoney(inv.taxableValue) + "</td></tr>" +
+      taxRow +
+      "<tr class='grand'><td>Total</td><td class='num'>" + formatMoney(inv.total) + "</td></tr>" +
+      "</tbody></table>" +
+      "<div class='foot'><div>This is a computer-generated invoice.</div>" +
+      "<div class='sign'>For " + escapeHtml(business.name || "the business") + "<div class='line'>Authorised signatory</div></div></div>" +
+      "<div class='noprint' style='margin-top:24px;text-align:center;'><button onclick='window.print()' style='font-size:14px;padding:10px 20px;cursor:pointer;'>Print / Save as PDF</button></div>" +
+      "</body></html>"
+    );
+  }
+
+  function printInvoice(invoiceId) {
+    const inv = invoices.find((i) => i.id === invoiceId);
+    if (!inv) return;
+    const win = window.open("", "_blank", "width=820,height=1000");
+    if (!win) {
+      toast("Please allow pop-ups to view/print the invoice");
+      return;
+    }
+    win.document.open();
+    win.document.write(buildInvoiceHtml(inv));
+    win.document.close();
+  }
+
   function toast(msg) {
     const el = document.getElementById("toast");
     el.textContent = msg;
@@ -278,6 +401,24 @@
     settings.currency = currencyInput.value || "₹";
     persist();
     renderAll();
+  });
+
+  /* ================= business & GST settings ================= */
+  const bizFields = {
+    name: document.getElementById("biz-name"),
+    gstin: document.getElementById("biz-gstin"),
+    address: document.getElementById("biz-address"),
+    state: document.getElementById("biz-state"),
+    hsnCode: document.getElementById("biz-hsn"),
+    gstRate: document.getElementById("biz-gst-rate"),
+    invoicePrefix: document.getElementById("biz-invoice-prefix"),
+  };
+  Object.keys(bizFields).forEach((key) => {
+    bizFields[key].value = business[key] != null ? business[key] : "";
+    bizFields[key].addEventListener("input", () => {
+      business[key] = key === "gstRate" ? Number(bizFields[key].value || 0) : bizFields[key].value;
+      persist();
+    });
   });
 
   /* ================= dialogs ================= */
@@ -448,6 +589,60 @@
     toast("Expense saved");
   });
 
+  /* ---------- invoice dialog ---------- */
+  function openInvoiceDialog(saleId) {
+    const sale = sales.find((s) => s.id === saleId);
+    if (!sale) return;
+    const v = getVehicle(sale.vehicleId);
+    document.getElementById("invoice-sale-id").value = saleId;
+    document.getElementById("invoice-vehicle-summary").textContent =
+      (v ? vehicleLabel(v) : "Vehicle") + " · Sale price " + formatMoney(sale.salePrice) + (sale.buyer ? " · Buyer: " + sale.buyer : "");
+    document.getElementById("invoice-buyer-address").value = "";
+    document.getElementById("invoice-buyer-gstin").value = "";
+    document.getElementById("invoice-buyer-state").value = "";
+    document.getElementById("invoice-supply-type").value = "intra";
+    document.getElementById("invoice-gst-rate").value = business.gstRate || 5;
+    document.getElementById("invoice-hsn").value = business.hsnCode || "8711";
+    openDialog("dlg-invoice");
+  }
+
+  document.getElementById("form-invoice").addEventListener("submit", () => {
+    const saleId = document.getElementById("invoice-sale-id").value;
+    const sale = sales.find((s) => s.id === saleId);
+    if (!sale) return;
+    const v = getVehicle(sale.vehicleId);
+    const gstRate = Number(document.getElementById("invoice-gst-rate").value || 0);
+    const interState = document.getElementById("invoice-supply-type").value === "inter";
+    const gst = computeGst(Number(sale.salePrice || 0), gstRate, interState);
+
+    const invoice = {
+      id: uid("inv"),
+      invoiceNo: nextInvoiceNumber(sale.saleDate),
+      date: sale.saleDate || todayISO(),
+      saleId: sale.id,
+      vehicleId: sale.vehicleId,
+      vehicleLabel: v ? vehicleLabel(v) : "Vehicle",
+      hsnCode: document.getElementById("invoice-hsn").value.trim(),
+      buyerName: sale.buyer || "",
+      buyerAddress: document.getElementById("invoice-buyer-address").value.trim(),
+      buyerGstin: document.getElementById("invoice-buyer-gstin").value.trim(),
+      buyerState: document.getElementById("invoice-buyer-state").value.trim(),
+      interState,
+      gstRate,
+      taxableValue: gst.taxableValue,
+      cgst: gst.cgst,
+      sgst: gst.sgst,
+      igst: gst.igst,
+      total: gst.total,
+    };
+    invoices.push(invoice);
+    business.nextInvoiceNo = Number(business.nextInvoiceNo || 1) + 1;
+    persist();
+    closeDialog("dlg-invoice");
+    renderAll();
+    toast("Invoice " + invoice.invoiceNo + " generated");
+  });
+
   /* ================= stock table ================= */
   const stockSearch = document.getElementById("stock-search");
   const stockFilter = document.getElementById("stock-filter");
@@ -556,6 +751,22 @@
         const actionsTd = tr.querySelector("td.actions-col");
         const wrap = document.createElement("div");
         wrap.className = "row-actions";
+
+        const existingInvoice = invoiceForSale(s.id);
+        const invBtn = document.createElement("button");
+        if (existingInvoice) {
+          invBtn.className = "icon-btn accent";
+          invBtn.title = "View / print invoice " + existingInvoice.invoiceNo;
+          invBtn.innerHTML = ICONS.eye + '<span class="sr-only">View invoice</span>';
+          invBtn.addEventListener("click", () => printInvoice(existingInvoice.id));
+        } else {
+          invBtn.className = "icon-btn accent";
+          invBtn.title = "Generate GST invoice";
+          invBtn.innerHTML = ICONS.card + '<span class="sr-only">Generate invoice</span>';
+          invBtn.addEventListener("click", () => openInvoiceDialog(s.id));
+        }
+        wrap.appendChild(invBtn);
+
         const delBtn = document.createElement("button");
         delBtn.className = "icon-btn danger";
         delBtn.title = "Delete";
@@ -563,6 +774,7 @@
         delBtn.addEventListener("click", () => {
           if (confirm("Delete this sale? The vehicle will return to in-stock.")) {
             sales = sales.filter((x) => x.id !== s.id);
+            invoices = invoices.filter((x) => x.saleId !== s.id);
             if (v) v.status = "in_stock";
             persist();
             renderAll();
@@ -1076,6 +1288,61 @@
     renderExpenses();
     renderDashboard();
     renderReports();
+    renderInvoices();
+  }
+
+  /* ================= invoices table (Billing tab) ================= */
+  function renderInvoices() {
+    const tbody = document.querySelector("#table-invoices tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    document.getElementById("invoices-empty").classList.toggle("hidden", invoices.length !== 0);
+    document.getElementById("invoices-sub").textContent =
+      invoices.length ? invoices.length + " invoice" + (invoices.length === 1 ? "" : "s") + " generated" : "Generate one from a row in the Sales tab";
+
+    invoices
+      .slice()
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+      .forEach((inv) => {
+        const gstTotal = inv.interState ? inv.igst : inv.cgst + inv.sgst;
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + escapeHtml(inv.invoiceNo) + "</td>" +
+          "<td>" + formatDate(inv.date) + "</td>" +
+          "<td><div class=\"vehicle-cell\"><span class=\"vehicle-avatar\">" + ICONS.car + "</span>" + escapeHtml(inv.vehicleLabel) + "</div></td>" +
+          "<td>" + escapeHtml(inv.buyerName || "—") + "</td>" +
+          "<td class=\"num\">" + formatMoney(inv.taxableValue) + "</td>" +
+          "<td class=\"num\">" + formatMoney(gstTotal) + "</td>" +
+          "<td class=\"num\">" + formatMoney(inv.total) + "</td>" +
+          "<td class=\"actions-col\"></td>";
+        const actionsTd = tr.querySelector("td.actions-col");
+        const wrap = document.createElement("div");
+        wrap.className = "row-actions";
+
+        const viewBtn = document.createElement("button");
+        viewBtn.className = "icon-btn accent";
+        viewBtn.title = "View / print";
+        viewBtn.innerHTML = ICONS.printer + '<span class="sr-only">View / print</span>';
+        viewBtn.addEventListener("click", () => printInvoice(inv.id));
+        wrap.appendChild(viewBtn);
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "icon-btn danger";
+        delBtn.title = "Delete invoice";
+        delBtn.innerHTML = ICONS.trash + '<span class="sr-only">Delete</span>';
+        delBtn.addEventListener("click", () => {
+          if (confirm("Delete invoice " + inv.invoiceNo + "? This cannot be undone.")) {
+            invoices = invoices.filter((x) => x.id !== inv.id);
+            persist();
+            renderAll();
+            toast("Invoice deleted");
+          }
+        });
+        wrap.appendChild(delBtn);
+
+        actionsTd.appendChild(wrap);
+        tbody.appendChild(tr);
+      });
   }
 
   window.addEventListener("resize", debounce(renderAll, 200));

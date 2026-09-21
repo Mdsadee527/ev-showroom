@@ -35,6 +35,10 @@
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         <span class="nav-label">Reports</span>
       </button>
+      <button class="nav-item" data-tab="billing">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span class="nav-label">GST Billing</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <label class="currency-field">
@@ -254,6 +258,61 @@
       <p class="empty-state hidden" id="report-empty">No sales in this range yet.</p>
     </section>
 
+    <!-- GST BILLING -->
+    <section id="tab-billing" class="tab-panel hidden">
+      <header class="panel-header">
+        <div>
+          <h1>GST Billing</h1>
+          <p class="subtitle">Generate GST-compliant invoices for your sales</p>
+        </div>
+      </header>
+
+      <div class="card" id="business-settings-card">
+        <div class="card-header">
+          <div>
+            <h2>Business &amp; GST details</h2>
+            <p class="card-sub">Printed on every invoice — saved automatically as you type</p>
+          </div>
+        </div>
+        <div class="field-grid">
+          <label>Business name<input type="text" id="biz-name" placeholder="e.g. Zelio E-Vehicles Showroom"></label>
+          <label>GSTIN<input type="text" id="biz-gstin" placeholder="e.g. 19ABCDE1234F1Z5" maxlength="15"></label>
+          <label class="full">Address<input type="text" id="biz-address" placeholder="Street, City, PIN"></label>
+          <label>State<input type="text" id="biz-state" placeholder="e.g. West Bengal"></label>
+          <label>HSN code<input type="text" id="biz-hsn" placeholder="e.g. 8711"></label>
+          <label>Default GST rate (%)<input type="number" id="biz-gst-rate" min="0" max="28" step="0.1"></label>
+          <label>Invoice number prefix<input type="text" id="biz-invoice-prefix" placeholder="e.g. INV"></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Invoices</h2>
+            <p class="card-sub" id="invoices-sub">Generate one from a row in the Sales tab</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="table-invoices">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Vehicle</th>
+                <th>Buyer</th>
+                <th class="num">Taxable value</th>
+                <th class="num">GST</th>
+                <th class="num">Total</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="empty-state hidden" id="invoices-empty">No invoices generated yet. Open the Sales tab and use "Generate invoice" on a sale.</p>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -328,6 +387,33 @@
     <div class="dlg-actions">
       <button type="button" class="btn btn-ghost" data-close>Cancel</button>
       <button type="submit" class="btn btn-primary">Save expense</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Generate GST Invoice -->
+<dialog id="dlg-invoice">
+  <form method="dialog" id="form-invoice" class="dlg-form">
+    <h2>Generate GST invoice</h2>
+    <input type="hidden" id="invoice-sale-id">
+    <p class="card-sub" id="invoice-vehicle-summary"></p>
+    <div class="field-grid">
+      <label class="full">Buyer address<input type="text" id="invoice-buyer-address" placeholder="Street, City, PIN"></label>
+      <label>Buyer GSTIN (optional)<input type="text" id="invoice-buyer-gstin" maxlength="15" placeholder="Leave blank for B2C"></label>
+      <label>Buyer state<input type="text" id="invoice-buyer-state" placeholder="e.g. West Bengal"></label>
+      <label>Supply type
+        <select id="invoice-supply-type">
+          <option value="intra">Intra-state (CGST + SGST)</option>
+          <option value="inter">Inter-state (IGST)</option>
+        </select>
+      </label>
+      <label>GST rate (%)<input type="number" id="invoice-gst-rate" min="0" max="28" step="0.1"></label>
+      <label>HSN code<input type="text" id="invoice-hsn"></label>
+    </div>
+    <p class="card-sub">Sale price is treated as GST-inclusive — taxable value and tax are split out automatically.</p>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Generate invoice</button>
     </div>
   </form>
 </dialog>
