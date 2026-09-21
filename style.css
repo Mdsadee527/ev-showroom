@@ -142,13 +142,12 @@ body {
   align-items: center;
   justify-content: center;
   width: 34px; height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--series-1), var(--series-7));
-  color: #fff;
-  box-shadow: 0 6px 16px -4px rgba(74,58,167,0.55);
   flex-shrink: 0;
+  filter: drop-shadow(0 4px 10px rgba(74,58,167,0.4));
 }
-.brand-mark .icon { width: 18px; height: 18px; }
+.brand-mark svg { width: 100%; height: 100%; }
+.brand-word { color: var(--text-primary); }
+.brand-accent { color: var(--series-7); }
 
 .nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
 .nav-item {
