@@ -10,7 +10,7 @@
     theme: "evshowroom.theme",
     dataVersion: "evshowroom.dataVersion",
   };
-  const CURRENT_SEED_VERSION = "2"; // bump to force-replace stored data with a new seed on next load
+  const CURRENT_SEED_VERSION = "3"; // bump to apply a new one-time data migration on next load
 
   function load(key, fallback) {
     try {
@@ -36,32 +36,61 @@
     save(KEYS.settings, settings);
   }
 
-  /* ================= starting inventory ================= */
-  // Re-seeds whenever CURRENT_SEED_VERSION changes, replacing whatever is stored —
-  // used once here to swap the earlier demo cars for the real current stock.
+  /* ================= starting inventory & one-time data migrations ================= */
   function applySeedIfVersionMismatch() {
-    if (load(KEYS.dataVersion, null) === CURRENT_SEED_VERSION) return;
+    const storedVersion = load(KEYS.dataVersion, null);
+    if (storedVersion === CURRENT_SEED_VERSION) return;
 
     const today = todayISO();
     const ZELIO = "Zelio E-Vehicles";
     const CHINA = "Chinese Import";
-    const seedVehicles = [
-      { id: "veh1", model: "Zelio Eco ZX", variant: "Unit 1", reg: "", purchaseDate: today, purchasePrice: 52000, expectedSalePrice: 65000, supplier: ZELIO, notes: "", status: "in_stock" },
-      { id: "veh2", model: "Zelio Eco ZX", variant: "Unit 2", reg: "", purchaseDate: today, purchasePrice: 52000, expectedSalePrice: 65000, supplier: ZELIO, notes: "", status: "in_stock" },
-      { id: "veh3", model: "Zelio Eva", variant: "", reg: "", purchaseDate: today, purchasePrice: 54000, expectedSalePrice: 70000, supplier: ZELIO, notes: "", status: "in_stock" },
-      { id: "veh4", model: "Zelio Gracy Plus", variant: "", reg: "", purchaseDate: today, purchasePrice: 56000, expectedSalePrice: 75000, supplier: ZELIO, notes: "", status: "in_stock" },
-      { id: "veh5", model: "Zelio Eva ZX", variant: "", reg: "", purchaseDate: today, purchasePrice: 65000, expectedSalePrice: 89000, supplier: ZELIO, notes: "", status: "in_stock" },
-      { id: "veh6", model: "Chinese E-Scooter #1", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
-      { id: "veh7", model: "Chinese E-Scooter #2", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
-      { id: "veh8", model: "Chinese E-Scooter #3", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
-      { id: "veh9", model: "Chinese E-Scooter #4", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
-      { id: "veh10", model: "Chinese E-Scooter #5", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
-      { id: "veh11", model: "Chinese E-Scooter #6", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
-    ];
 
-    vehicles = seedVehicles;
-    sales = [];
-    expenses = [];
+    // v2: replaces whatever is stored with the real current stock (11 vehicles)
+    if (storedVersion !== "2") {
+      vehicles = [
+        { id: "veh1", model: "Zelio Eco ZX", variant: "Unit 1", reg: "", purchaseDate: today, purchasePrice: 52000, expectedSalePrice: 65000, supplier: ZELIO, notes: "", status: "in_stock" },
+        { id: "veh2", model: "Zelio Eco ZX", variant: "Unit 2", reg: "", purchaseDate: today, purchasePrice: 52000, expectedSalePrice: 65000, supplier: ZELIO, notes: "", status: "in_stock" },
+        { id: "veh3", model: "Zelio Eva", variant: "", reg: "", purchaseDate: today, purchasePrice: 54000, expectedSalePrice: 70000, supplier: ZELIO, notes: "", status: "in_stock" },
+        { id: "veh4", model: "Zelio Gracy Plus", variant: "", reg: "", purchaseDate: today, purchasePrice: 56000, expectedSalePrice: 75000, supplier: ZELIO, notes: "", status: "in_stock" },
+        { id: "veh5", model: "Zelio Eva ZX", variant: "", reg: "", purchaseDate: today, purchasePrice: 65000, expectedSalePrice: 89000, supplier: ZELIO, notes: "", status: "in_stock" },
+        { id: "veh6", model: "Chinese E-Scooter #1", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+        { id: "veh7", model: "Chinese E-Scooter #2", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+        { id: "veh8", model: "Chinese E-Scooter #3", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+        { id: "veh9", model: "Chinese E-Scooter #4", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+        { id: "veh10", model: "Chinese E-Scooter #5", variant: "", reg: "", purchaseDate: today, purchasePrice: 44000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+        { id: "veh11", model: "Chinese E-Scooter #6", variant: "", reg: "", purchaseDate: today, purchasePrice: 45000, expectedSalePrice: null, supplier: CHINA, notes: "Selling price to be added", status: "in_stock" },
+      ];
+      sales = [];
+      expenses = [];
+    }
+
+    // v3: adds 8 vehicles already sold in August (kept separate from the 11 current-stock
+    // units above) — appended on top of whatever is already stored, never replacing it.
+    const augustSoldVehicles = [
+      { id: "veh-aug1", model: "Zelio Gracy", variant: "Unit 1", reg: "", purchaseDate: "2026-07-05", purchasePrice: 56000, expectedSalePrice: 75000, supplier: ZELIO, notes: "", status: "sold" },
+      { id: "veh-aug2", model: "Zelio Gracy", variant: "Unit 2", reg: "", purchaseDate: "2026-07-08", purchasePrice: 56000, expectedSalePrice: 75000, supplier: ZELIO, notes: "", status: "sold" },
+      { id: "veh-aug3", model: "Zelio Gracy", variant: "Unit 3", reg: "", purchaseDate: "2026-07-12", purchasePrice: 56000, expectedSalePrice: 75000, supplier: ZELIO, notes: "", status: "sold" },
+      { id: "veh-aug4", model: "Zelio Eva ZX", variant: "Unit 1", reg: "", purchaseDate: "2026-07-15", purchasePrice: 65000, expectedSalePrice: 89000, supplier: ZELIO, notes: "", status: "sold" },
+      { id: "veh-aug5", model: "Zelio Eva ZX", variant: "Unit 2", reg: "", purchaseDate: "2026-07-18", purchasePrice: 65000, expectedSalePrice: 89000, supplier: ZELIO, notes: "", status: "sold" },
+      { id: "veh-aug6", model: "Zelio Eva", variant: "", reg: "", purchaseDate: "2026-07-20", purchasePrice: 54000, expectedSalePrice: 70000, supplier: ZELIO, notes: "", status: "sold" },
+      { id: "veh-aug7", model: "Zelio Eva LX", variant: "", reg: "", purchaseDate: "2026-07-22", purchasePrice: 58000, expectedSalePrice: 76000, supplier: ZELIO, notes: "Estimated buy/sell price — confirm and correct if different", status: "sold" },
+      { id: "veh-aug8", model: "Z Man", variant: "", reg: "", purchaseDate: "2026-07-25", purchasePrice: 50000, expectedSalePrice: 64000, supplier: "Unconfirmed brand", notes: "Estimated price and brand — confirm and correct if different", status: "sold" },
+    ];
+    const augustSales = [
+      { id: "sale-aug1", vehicleId: "veh-aug1", saleDate: "2026-08-03", salePrice: 75000, buyer: "", contact: "", notes: "" },
+      { id: "sale-aug2", vehicleId: "veh-aug2", saleDate: "2026-08-08", salePrice: 75000, buyer: "", contact: "", notes: "" },
+      { id: "sale-aug3", vehicleId: "veh-aug3", saleDate: "2026-08-14", salePrice: 75000, buyer: "", contact: "", notes: "" },
+      { id: "sale-aug4", vehicleId: "veh-aug4", saleDate: "2026-08-18", salePrice: 89000, buyer: "", contact: "", notes: "" },
+      { id: "sale-aug5", vehicleId: "veh-aug5", saleDate: "2026-08-22", salePrice: 89000, buyer: "", contact: "", notes: "" },
+      { id: "sale-aug6", vehicleId: "veh-aug6", saleDate: "2026-08-25", salePrice: 70000, buyer: "", contact: "", notes: "" },
+      { id: "sale-aug7", vehicleId: "veh-aug7", saleDate: "2026-08-27", salePrice: 76000, buyer: "", contact: "", notes: "" },
+      { id: "sale-aug8", vehicleId: "veh-aug8", saleDate: "2026-08-29", salePrice: 64000, buyer: "", contact: "", notes: "" },
+    ];
+    if (!vehicles.some((v) => v.id === "veh-aug1")) {
+      vehicles = vehicles.concat(augustSoldVehicles);
+      sales = sales.concat(augustSales);
+    }
+
     persist();
     save(KEYS.dataVersion, CURRENT_SEED_VERSION);
   }
@@ -160,14 +189,20 @@
   // the most recent month that actually has activity, so the dashboard always
   // features real numbers instead of an empty "today" bucket
   function latestActiveMonthKey() {
-    const keys = []
-      .concat(vehicles.map((v) => v.purchaseDate))
+    // months with real sales/expense activity take priority over months that only
+    // have inventory purchases, so a fresh batch of stock doesn't bump a busier
+    // sales month off the dashboard
+    const transactionKeys = []
       .concat(sales.map((s) => s.saleDate))
       .concat(expenses.map((e) => e.date))
       .filter(Boolean)
       .map((d) => d.slice(0, 7));
-    if (!keys.length) return todayISO().slice(0, 7);
-    return keys.sort().pop();
+    if (transactionKeys.length) return transactionKeys.sort().pop();
+
+    const purchaseKeys = vehicles.map((v) => v.purchaseDate).filter(Boolean).map((d) => d.slice(0, 7));
+    if (purchaseKeys.length) return purchaseKeys.sort().pop();
+
+    return todayISO().slice(0, 7);
   }
 
   function computeMonthSummary(monthKey) {
