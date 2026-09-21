@@ -618,24 +618,67 @@
   });
 
   /* ---------- invoice dialog ---------- */
-  function openInvoiceDialog(saleId) {
+  function uninvoicedSales() {
+    return sales.filter((s) => !invoiceForSale(s.id));
+  }
+
+  function saleOptionLabel(s) {
+    const v = getVehicle(s.vehicleId);
+    return (v ? vehicleLabel(v) : "Vehicle") + " · " + formatDate(s.saleDate) + " · " + formatMoney(s.salePrice) + (s.buyer ? " · " + s.buyer : "");
+  }
+
+  function updateInvoiceSummary() {
+    const saleId = document.getElementById("invoice-sale-select").value;
     const sale = sales.find((s) => s.id === saleId);
-    if (!sale) return;
+    const summaryEl = document.getElementById("invoice-vehicle-summary");
+    const nameInput = document.getElementById("invoice-buyer-name");
+    if (!sale) {
+      summaryEl.textContent = "";
+      return;
+    }
     const v = getVehicle(sale.vehicleId);
-    document.getElementById("invoice-sale-id").value = saleId;
-    document.getElementById("invoice-vehicle-summary").textContent =
-      (v ? vehicleLabel(v) : "Vehicle") + " · Sale price " + formatMoney(sale.salePrice) + (sale.buyer ? " · Buyer: " + sale.buyer : "");
+    summaryEl.textContent = (v ? vehicleLabel(v) : "Vehicle") + " · Sale price " + formatMoney(sale.salePrice) + " · " + formatDate(sale.saleDate);
+    if (!nameInput.dataset.touched) nameInput.value = sale.buyer || "";
+  }
+
+  function openInvoiceDialog(preselectSaleId) {
+    const candidates = uninvoicedSales();
+    if (candidates.length === 0) {
+      toast("Every sale already has an invoice");
+      return;
+    }
+    const sel = document.getElementById("invoice-sale-select");
+    sel.innerHTML = "";
+    candidates
+      .slice()
+      .sort((a, b) => (b.saleDate || "").localeCompare(a.saleDate || ""))
+      .forEach((s) => {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = saleOptionLabel(s);
+        sel.appendChild(opt);
+      });
+    if (preselectSaleId && candidates.some((s) => s.id === preselectSaleId)) sel.value = preselectSaleId;
+
+    const nameInput = document.getElementById("invoice-buyer-name");
+    nameInput.value = "";
+    delete nameInput.dataset.touched;
+    nameInput.addEventListener("input", () => { nameInput.dataset.touched = "1"; }, { once: true });
     document.getElementById("invoice-buyer-address").value = "";
     document.getElementById("invoice-buyer-gstin").value = "";
     document.getElementById("invoice-buyer-state").value = "";
     document.getElementById("invoice-supply-type").value = "intra";
     document.getElementById("invoice-gst-rate").value = business.gstRate || 5;
     document.getElementById("invoice-hsn").value = business.hsnCode || "8711";
+    updateInvoiceSummary();
     openDialog("dlg-invoice");
   }
 
+  document.getElementById("invoice-sale-select").addEventListener("change", updateInvoiceSummary);
+  document.getElementById("btn-new-invoice").addEventListener("click", () => openInvoiceDialog());
+
   document.getElementById("form-invoice").addEventListener("submit", () => {
-    const saleId = document.getElementById("invoice-sale-id").value;
+    const saleId = document.getElementById("invoice-sale-select").value;
     const sale = sales.find((s) => s.id === saleId);
     if (!sale) return;
     const v = getVehicle(sale.vehicleId);
@@ -651,7 +694,7 @@
       vehicleId: sale.vehicleId,
       vehicleLabel: v ? vehicleLabel(v) : "Vehicle",
       hsnCode: document.getElementById("invoice-hsn").value.trim(),
-      buyerName: sale.buyer || "",
+      buyerName: document.getElementById("invoice-buyer-name").value.trim() || sale.buyer || "",
       buyerAddress: document.getElementById("invoice-buyer-address").value.trim(),
       buyerGstin: document.getElementById("invoice-buyer-gstin").value.trim(),
       buyerState: document.getElementById("invoice-buyer-state").value.trim(),
