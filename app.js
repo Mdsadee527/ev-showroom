@@ -12,7 +12,7 @@
     business: "evshowroom.business",
     invoices: "evshowroom.invoices",
   };
-  const CURRENT_SEED_VERSION = "3"; // bump to apply a new one-time data migration on next load
+  const CURRENT_SEED_VERSION = "4"; // bump to apply a new one-time data migration on next load
 
   function load(key, fallback) {
     try {
@@ -104,6 +104,34 @@
     if (!vehicles.some((v) => v.id === "veh-aug1")) {
       vehicles = vehicles.concat(augustSoldVehicles);
       sales = sales.concat(augustSales);
+    }
+
+    // v4: sample GST invoice for one Gracy sale, so GST Billing has a real example on
+    // first visit — fill in your business/buyer details later and it stays editable
+    if (!invoices.some((i) => i.saleId === "sale-aug1")) {
+      const gstRate = Number(business.gstRate || 5);
+      const gst = computeGst(75000, gstRate, false);
+      invoices.push({
+        id: "inv-sample-gracy1",
+        invoiceNo: nextInvoiceNumber("2026-08-03"),
+        date: "2026-08-03",
+        saleId: "sale-aug1",
+        vehicleId: "veh-aug1",
+        vehicleLabel: "Zelio Gracy – Unit 1",
+        hsnCode: business.hsnCode || "8711",
+        buyerName: "",
+        buyerAddress: "",
+        buyerGstin: "",
+        buyerState: "",
+        interState: false,
+        gstRate,
+        taxableValue: gst.taxableValue,
+        cgst: gst.cgst,
+        sgst: gst.sgst,
+        igst: gst.igst,
+        total: gst.total,
+      });
+      business.nextInvoiceNo = Number(business.nextInvoiceNo || 1) + 1;
     }
 
     persist();
