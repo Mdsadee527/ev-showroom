@@ -34,6 +34,81 @@
     save(KEYS.settings, settings);
   }
 
+  /* ================= sample data (first run only) ================= */
+  function seedDemoDataIfEmpty() {
+    if (vehicles.length || sales.length || expenses.length) return;
+
+    const D = "Tata Motors Authorized Dealer";
+    const M = "MG Motor India";
+    const seedVehicles = [
+      // -- opening stock: purchased before August (15 vehicles) --
+      { id: "veh1", model: "Tata Nexon EV", variant: "Empowered LR", reg: "WB20AB1001", purchaseDate: "2026-06-03", purchasePrice: 1380000, supplier: D, notes: "", status: "sold" },
+      { id: "veh2", model: "Tata Tiago EV", variant: "XZ+ Tech Lux", reg: "WB20AB1002", purchaseDate: "2026-06-05", purchasePrice: 760000, supplier: D, notes: "", status: "in_stock" },
+      { id: "veh3", model: "Tata Punch EV", variant: "Adventure", reg: "WB20AB1003", purchaseDate: "2026-06-08", purchasePrice: 960000, supplier: D, notes: "", status: "sold" },
+      { id: "veh4", model: "MG ZS EV", variant: "Excite", reg: "WB20AB1004", purchaseDate: "2026-06-10", purchasePrice: 1980000, supplier: M, notes: "", status: "in_stock" },
+      { id: "veh5", model: "MG Comet EV", variant: "Pace", reg: "WB20AB1005", purchaseDate: "2026-06-12", purchasePrice: 660000, supplier: M, notes: "", status: "sold" },
+      { id: "veh6", model: "Hyundai Kona Electric", variant: "Premium", reg: "WB20AB1006", purchaseDate: "2026-06-15", purchasePrice: 2250000, supplier: "Hyundai Motor India", notes: "", status: "in_stock" },
+      { id: "veh7", model: "Mahindra XUV400", variant: "EC", reg: "WB20AB1007", purchaseDate: "2026-06-18", purchasePrice: 1520000, supplier: "Mahindra Dealership", notes: "", status: "in_stock" },
+      { id: "veh8", model: "Citroën eC3", variant: "Live", reg: "WB20AB1008", purchaseDate: "2026-06-20", purchasePrice: 1160000, supplier: "Citroën India", notes: "", status: "sold" },
+      { id: "veh9", model: "Tata Nexon EV", variant: "Creative LR", reg: "WB20AB1009", purchaseDate: "2026-06-22", purchasePrice: 1400000, supplier: D, notes: "", status: "in_stock" },
+      { id: "veh10", model: "Tata Tiago EV", variant: "XE", reg: "WB20AB1010", purchaseDate: "2026-06-25", purchasePrice: 740000, supplier: D, notes: "", status: "in_stock" },
+      { id: "veh11", model: "BYD Atto 3", variant: "Superior", reg: "WB20AB1011", purchaseDate: "2026-06-28", purchasePrice: 3250000, supplier: "BYD India", notes: "", status: "in_stock" },
+      { id: "veh12", model: "Tata Punch EV", variant: "Empowered", reg: "WB20AB1012", purchaseDate: "2026-07-02", purchasePrice: 980000, supplier: D, notes: "", status: "sold" },
+      { id: "veh13", model: "MG ZS EV", variant: "Exclusive", reg: "WB20AB1013", purchaseDate: "2026-07-06", purchasePrice: 2020000, supplier: M, notes: "", status: "in_stock" },
+      { id: "veh14", model: "Hyundai Kona Electric", variant: "Base", reg: "WB20AB1014", purchaseDate: "2026-07-10", purchasePrice: 2180000, supplier: "Hyundai Motor India", notes: "", status: "in_stock" },
+      { id: "veh15", model: "Tata Nexon EV", variant: "Fearless LR", reg: "WB20AB1015", purchaseDate: "2026-07-15", purchasePrice: 1420000, supplier: D, notes: "", status: "in_stock" },
+      // -- purchased during August (7 vehicles) --
+      { id: "veh16", model: "Tata Tiago EV", variant: "XZ+", reg: "WB20AB1016", purchaseDate: "2026-08-03", purchasePrice: 770000, supplier: D, notes: "", status: "sold" },
+      { id: "veh17", model: "MG Comet EV", variant: "Pace", reg: "WB20AB1017", purchaseDate: "2026-08-06", purchasePrice: 670000, supplier: M, notes: "", status: "in_stock" },
+      { id: "veh18", model: "Tata Punch EV", variant: "Adventure Rugged", reg: "WB20AB1018", purchaseDate: "2026-08-09", purchasePrice: 970000, supplier: D, notes: "", status: "sold" },
+      { id: "veh19", model: "Citroën eC3", variant: "Live", reg: "WB20AB1019", purchaseDate: "2026-08-13", purchasePrice: 1170000, supplier: "Citroën India", notes: "", status: "in_stock" },
+      { id: "veh20", model: "Tata Nexon EV", variant: "Creative LR", reg: "WB20AB1020", purchaseDate: "2026-08-17", purchasePrice: 1410000, supplier: D, notes: "", status: "sold" },
+      { id: "veh21", model: "Mahindra XUV400", variant: "EL Pro", reg: "WB20AB1021", purchaseDate: "2026-08-21", purchasePrice: 1540000, supplier: "Mahindra Dealership", notes: "", status: "in_stock" },
+      { id: "veh22", model: "MG ZS EV", variant: "Excite", reg: "WB20AB1022", purchaseDate: "2026-08-25", purchasePrice: 2000000, supplier: M, notes: "", status: "in_stock" },
+    ];
+
+    const seedSales = [
+      { id: "sale1", vehicleId: "veh1", saleDate: "2026-08-04", salePrice: 1510000, buyer: "Arindam Banerjee", contact: "", notes: "" },
+      { id: "sale2", vehicleId: "veh3", saleDate: "2026-08-07", salePrice: 1045000, buyer: "Sunita Roy", contact: "", notes: "" },
+      { id: "sale3", vehicleId: "veh5", saleDate: "2026-08-09", salePrice: 725000, buyer: "Kabir Sen", contact: "", notes: "" },
+      { id: "sale4", vehicleId: "veh8", saleDate: "2026-08-12", salePrice: 1255000, buyer: "Priya Dutta", contact: "", notes: "" },
+      { id: "sale5", vehicleId: "veh12", saleDate: "2026-08-15", salePrice: 1065000, buyer: "Rohan Ghosh", contact: "", notes: "" },
+      { id: "sale6", vehicleId: "veh16", saleDate: "2026-08-19", salePrice: 845000, buyer: "Ananya Chatterjee", contact: "", notes: "" },
+      { id: "sale7", vehicleId: "veh18", saleDate: "2026-08-23", salePrice: 1055000, buyer: "Vikram Saha", contact: "", notes: "" },
+      { id: "sale8", vehicleId: "veh20", saleDate: "2026-08-28", salePrice: 1545000, buyer: "Meera Iyer", contact: "", notes: "" },
+    ];
+
+    const seedExpenses = [
+      { id: "exp1", date: "2026-08-02", category: "Transport", amount: 8000, vehicleId: "veh16", notes: "Transport from Pune plant" },
+      { id: "exp2", date: "2026-08-05", category: "Registration", amount: 22000, vehicleId: "veh3", notes: "RTO registration + road tax" },
+      { id: "exp3", date: "2026-08-10", category: "Marketing", amount: 15000, vehicleId: null, notes: "Instagram + local newspaper ads" },
+      { id: "exp4", date: "2026-08-14", category: "Service & repair", amount: 6500, vehicleId: "veh8", notes: "Pre-delivery inspection & detailing" },
+      { id: "exp5", date: "2026-08-18", category: "Staff", amount: 45000, vehicleId: null, notes: "Sales staff incentive – August" },
+      { id: "exp6", date: "2026-08-22", category: "Rent & utilities", amount: 60000, vehicleId: null, notes: "Showroom rent – August" },
+      { id: "exp7", date: "2026-08-26", category: "Transport", amount: 9000, vehicleId: "veh21", notes: "Vehicle transport charges" },
+    ];
+
+    vehicles = seedVehicles;
+    sales = seedSales;
+    expenses = seedExpenses;
+    persist();
+  }
+  seedDemoDataIfEmpty();
+
+  /* ================= icon library ================= */
+  const ICONS = {
+    car: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><rect x="2.5" y="11" width="19" height="6" rx="2"/><circle cx="7" cy="17.3" r="1.6"/><circle cx="17" cy="17.3" r="1.6"/></svg>',
+    edit: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    trash: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+    tag: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+    box: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+    bag: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+    trending: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+    receipt: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+    award: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><polyline points="8.5 13.5 7 22 12 19 17 22 15.5 13.5"/></svg>',
+    arrowRight: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  };
+
   /* ================= helpers ================= */
   function uid(prefix) {
     return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -78,6 +153,83 @@
     const purchase = v ? Number(v.purchasePrice || 0) : 0;
     const vExp = v ? expensesForVehicle(v.id) : 0;
     return Number(sale.salePrice || 0) - purchase - vExp;
+  }
+
+  /* ================= month / stock-flow calculations ================= */
+  function addDaysISO(iso, delta) {
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    return toLocalISODate(d);
+  }
+
+  function monthBounds(monthKey) {
+    const [y, m] = monthKey.split("-").map(Number);
+    const start = monthKey + "-01";
+    const end = toLocalISODate(new Date(y, m, 0));
+    return { start, end };
+  }
+
+  function monthLabel(monthKey) {
+    const [y, m] = monthKey.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+
+  // vehicles physically in stock as of a given date (purchased on/before it, not yet sold on/before it)
+  function stockAsOf(dateISO) {
+    return vehicles.filter((v) => {
+      if (!v.purchaseDate || v.purchaseDate > dateISO) return false;
+      const sale = sales.find((s) => s.vehicleId === v.id);
+      if (!sale) return true;
+      return sale.saleDate > dateISO;
+    }).length;
+  }
+
+  // the most recent month that actually has activity, so the dashboard always
+  // features real numbers instead of an empty "today" bucket
+  function latestActiveMonthKey() {
+    const keys = []
+      .concat(vehicles.map((v) => v.purchaseDate))
+      .concat(sales.map((s) => s.saleDate))
+      .concat(expenses.map((e) => e.date))
+      .filter(Boolean)
+      .map((d) => d.slice(0, 7));
+    if (!keys.length) return todayISO().slice(0, 7);
+    return keys.sort().pop();
+  }
+
+  function computeMonthSummary(monthKey) {
+    const { start, end } = monthBounds(monthKey);
+    const purchasedList = vehicles.filter((v) => v.purchaseDate >= start && v.purchaseDate <= end);
+    const soldList = sales.filter((s) => s.saleDate >= start && s.saleDate <= end);
+    const expensesList = expenses.filter((e) => e.date >= start && e.date <= end);
+
+    const opening = stockAsOf(addDaysISO(start, -1));
+    const closing = stockAsOf(end);
+    const revenue = soldList.reduce((s, x) => s + Number(x.salePrice || 0), 0);
+    const purchaseCostOfSold = soldList.reduce((s, x) => {
+      const v = getVehicle(x.vehicleId);
+      return s + (v ? Number(v.purchasePrice || 0) : 0);
+    }, 0);
+    const purchaseCostOfPurchased = purchasedList.reduce((s, v) => s + Number(v.purchasePrice || 0), 0);
+    const expensesTotal = expensesList.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const profit = revenue - purchaseCostOfSold - expensesTotal;
+
+    return {
+      monthKey,
+      label: monthLabel(monthKey),
+      start,
+      end,
+      opening,
+      closing,
+      purchasedList,
+      soldList,
+      expensesList,
+      revenue,
+      purchaseCostOfSold,
+      purchaseCostOfPurchased,
+      expensesTotal,
+      profit,
+    };
   }
 
   function toast(msg) {
@@ -314,7 +466,7 @@
             ? '<span class="badge badge-sold">Sold</span>'
             : '<span class="badge badge-instock">In stock</span>';
         tr.innerHTML =
-          "<td>" + escapeHtml(vehicleLabel(v)) + "</td>" +
+          "<td><div class=\"vehicle-cell\"><span class=\"vehicle-avatar\">" + ICONS.car + "</span>" + escapeHtml(vehicleLabel(v)) + "</div></td>" +
           "<td>" + escapeHtml(v.reg || "—") + "</td>" +
           "<td>" + formatDate(v.purchaseDate) + "</td>" +
           "<td class=\"num\">" + formatMoney(v.purchasePrice) + "</td>" +
@@ -327,22 +479,26 @@
 
         if (v.status === "in_stock") {
           const sellBtn = document.createElement("button");
-          sellBtn.textContent = "Mark sold";
+          sellBtn.className = "icon-btn accent";
+          sellBtn.title = "Mark sold";
+          sellBtn.innerHTML = ICONS.tag + '<span class="sr-only">Mark sold</span>';
           sellBtn.addEventListener("click", () => openSaleDialog(v.id));
           wrap.appendChild(sellBtn);
         }
         const editBtn = document.createElement("button");
-        editBtn.textContent = "Edit";
+        editBtn.className = "icon-btn";
+        editBtn.title = "Edit";
+        editBtn.innerHTML = ICONS.edit + '<span class="sr-only">Edit</span>';
         editBtn.addEventListener("click", () => openEditVehicle(v.id));
         wrap.appendChild(editBtn);
 
         const delBtn = document.createElement("button");
-        delBtn.textContent = "Delete";
-        delBtn.className = "danger";
+        delBtn.className = "icon-btn danger";
+        delBtn.title = "Delete";
+        delBtn.innerHTML = ICONS.trash + '<span class="sr-only">Delete</span>';
         if (v.status === "sold") {
           delBtn.disabled = true;
           delBtn.title = "Sold vehicles can't be deleted — delete the sale first";
-          delBtn.style.opacity = "0.4";
         } else {
           delBtn.addEventListener("click", () => {
             if (confirm("Delete this vehicle? This cannot be undone.")) {
@@ -375,7 +531,7 @@
         const profit = saleProfit(s);
         const tr = document.createElement("tr");
         tr.innerHTML =
-          "<td>" + escapeHtml(v ? vehicleLabel(v) : "(deleted vehicle)") + "</td>" +
+          "<td><div class=\"vehicle-cell\"><span class=\"vehicle-avatar\">" + ICONS.car + "</span>" + escapeHtml(v ? vehicleLabel(v) : "(deleted vehicle)") + "</div></td>" +
           "<td>" + formatDate(s.saleDate) + "</td>" +
           "<td>" + escapeHtml(s.buyer || "—") + "</td>" +
           "<td class=\"num\">" + formatMoney(s.salePrice) + "</td>" +
@@ -387,8 +543,9 @@
         const wrap = document.createElement("div");
         wrap.className = "row-actions";
         const delBtn = document.createElement("button");
-        delBtn.textContent = "Delete";
-        delBtn.className = "danger";
+        delBtn.className = "icon-btn danger";
+        delBtn.title = "Delete";
+        delBtn.innerHTML = ICONS.trash + '<span class="sr-only">Delete</span>';
         delBtn.addEventListener("click", () => {
           if (confirm("Delete this sale? The vehicle will return to in-stock.")) {
             sales = sales.filter((x) => x.id !== s.id);
@@ -426,12 +583,15 @@
         const wrap = document.createElement("div");
         wrap.className = "row-actions";
         const editBtn = document.createElement("button");
-        editBtn.textContent = "Edit";
+        editBtn.className = "icon-btn";
+        editBtn.title = "Edit";
+        editBtn.innerHTML = ICONS.edit + '<span class="sr-only">Edit</span>';
         editBtn.addEventListener("click", () => openEditExpense(e.id));
         wrap.appendChild(editBtn);
         const delBtn = document.createElement("button");
-        delBtn.textContent = "Delete";
-        delBtn.className = "danger";
+        delBtn.className = "icon-btn danger";
+        delBtn.title = "Delete";
+        delBtn.innerHTML = ICONS.trash + '<span class="sr-only">Delete</span>';
         delBtn.addEventListener("click", () => {
           if (confirm("Delete this expense?")) {
             expenses = expenses.filter((x) => x.id !== e.id);
@@ -453,41 +613,59 @@
 
   function renderDashboard() {
     const statGrid = document.getElementById("stat-grid");
+    const featuredMonth = latestActiveMonthKey();
+    const summary = computeMonthSummary(featuredMonth);
+
+    const badgeText = document.getElementById("month-badge-text");
+    if (badgeText) badgeText.textContent = summary.label;
+
     const stockCount = vehicles.filter((v) => v.status === "in_stock").length;
-    const soldCount = sales.length;
-    const totalRevenue = sales.reduce((s, x) => s + Number(x.salePrice || 0), 0);
-    const totalExpenses = expenses.reduce((s, x) => s + Number(x.amount || 0), 0);
-    const totalPurchaseCostSold = sales.reduce((s, x) => {
-      const v = getVehicle(x.vehicleId);
-      return s + (v ? Number(v.purchasePrice || 0) : 0);
-    }, 0);
-    const netProfit = totalRevenue - totalPurchaseCostSold - totalExpenses;
-
-    const today = todayISO();
-    const monthStart = today.slice(0, 7) + "-01";
-    const todaySales = sales.filter((s) => s.saleDate === today);
-    const monthSales = sales.filter((s) => inRange(s.saleDate, monthStart));
-
     const stockValue = vehicles.filter((v) => v.status === "in_stock").reduce((s, v) => s + Number(v.purchasePrice || 0), 0);
+    const marginPct = summary.revenue > 0 ? Math.round((summary.profit / summary.revenue) * 100) : 0;
 
-    const tiles = [
-      { label: "Vehicles in stock", value: stockCount, sub: formatMoney(stockValue) + " invested" },
-      { label: "Vehicles sold (all time)", value: soldCount, sub: todaySales.length + " sold today" },
-      { label: "Total revenue", value: formatMoney(totalRevenue), sub: formatMoney(monthSales.reduce((s, x) => s + Number(x.salePrice || 0), 0)) + " this month" },
-      { label: "Total expenses", value: formatMoney(totalExpenses), sub: "Across " + expenses.length + " entries" },
-      { label: "Net profit (all time)", value: formatMoney(netProfit), sub: netProfit >= 0 ? "Profitable" : "Running at a loss", cls: netProfit >= 0 ? "good" : "critical" },
+    const cards = [
+      {
+        cls: "stock", icon: ICONS.box,
+        label: "Current stock", value: stockCount,
+        sub: formatMoney(stockValue) + " invested",
+      },
+      {
+        cls: "purchase", icon: ICONS.bag,
+        label: "Purchases", value: summary.purchasedList.length,
+        sub: formatMoney(summary.purchaseCostOfPurchased) + " spent",
+      },
+      {
+        cls: "sales", icon: ICONS.trending,
+        label: "Vehicles sold", value: summary.soldList.length,
+        sub: formatMoney(summary.revenue) + " revenue",
+      },
+      {
+        cls: "expenses", icon: ICONS.receipt,
+        label: "Expenses", value: formatMoney(summary.expensesTotal),
+        sub: summary.expensesList.length + " entries",
+      },
+      {
+        cls: "profit", icon: ICONS.award,
+        label: "Net profit", value: formatMoney(summary.profit),
+        sub: summary.profit >= 0 ? "Profitable · " + marginPct + "% margin" : "Running at a loss",
+        valueCls: summary.profit >= 0 ? "good" : "critical",
+      },
     ];
 
     statGrid.innerHTML = "";
-    tiles.forEach((t) => {
+    cards.forEach((c) => {
       const div = document.createElement("div");
-      div.className = "stat-tile";
+      div.className = "stat-card stat-card--" + c.cls;
       div.innerHTML =
-        '<div class="stat-label">' + t.label + "</div>" +
-        '<div class="stat-value ' + (t.cls || "") + '">' + t.value + "</div>" +
-        '<div class="stat-sub">' + t.sub + "</div>";
+        '<div class="stat-card-icon">' + c.icon + "</div>" +
+        '<div class="stat-card-label">' + c.label + "</div>" +
+        '<div class="stat-card-value ' + (c.valueCls || "") + '">' + c.value + "</div>" +
+        '<div class="stat-card-sub">' + c.sub + "</div>";
       statGrid.appendChild(div);
     });
+
+    renderStockFlow(summary);
+    renderRevenueBreakdown(summary);
 
     // recent sales mini table
     const recentWrap = document.getElementById("recent-sales");
@@ -498,12 +676,15 @@
     if (recent.length === 0) {
       recentWrap.innerHTML = '<p class="mini-empty">No sales recorded yet.</p>';
     } else {
-      let html = "<table><thead><tr><th>Vehicle</th><th>Date</th><th class=\"num\">Profit</th></tr></thead><tbody>";
+      let html = "<table><thead><tr><th>Vehicle</th><th>Buyer</th><th>Date</th><th class=\"num\">Profit</th></tr></thead><tbody>";
       recent.forEach((s) => {
         const v = getVehicle(s.vehicleId);
         const profit = saleProfit(s);
         html +=
-          "<tr><td>" + escapeHtml(v ? vehicleLabel(v) : "—") + "</td><td>" + formatDate(s.saleDate) + '</td><td class="num ' +
+          "<tr><td><div class=\"vehicle-cell\"><span class=\"vehicle-avatar\">" + ICONS.car + "</span>" +
+          escapeHtml(v ? vehicleLabel(v) : "—") + "</div></td>" +
+          "<td>" + escapeHtml(s.buyer || "—") + "</td>" +
+          "<td>" + formatDate(s.saleDate) + '</td><td class="num ' +
           (profit >= 0 ? "profit-pos" : "profit-neg") + '">' + formatMoney(profit) + "</td></tr>";
       });
       html += "</tbody></table>";
@@ -524,6 +705,86 @@
       return { label, value: revenue - cost - exp };
     });
     renderDivergingBarChart(document.getElementById("profit-chart"), chartData);
+  }
+
+  /* ---------- stock movement stepper ---------- */
+  function renderStockFlow(summary) {
+    const el = document.getElementById("stock-flow");
+    if (!el) return;
+    const sub = document.getElementById("stock-flow-sub");
+    if (sub) sub.textContent = summary.label + " — opening stock → purchases → sales → current stock, calculated automatically";
+
+    const steps = [
+      { cls: "opening", label: "Opening stock", value: summary.opening, icon: ICONS.box },
+      { cls: "purchased", label: "Purchased", value: "+" + summary.purchasedList.length, icon: ICONS.bag },
+      { cls: "sold", label: "Sold", value: "−" + summary.soldList.length, icon: ICONS.trending },
+      { cls: "closing", label: "Current stock", value: summary.closing, icon: ICONS.award },
+    ];
+
+    let html = "";
+    steps.forEach((s, i) => {
+      html +=
+        '<div class="stepper-step ' + s.cls + '">' +
+        '<span class="stepper-icon">' + s.icon + "</span>" +
+        '<span class="stepper-value">' + s.value + "</span>" +
+        '<span class="stepper-label">' + s.label + "</span>" +
+        "</div>";
+      if (i < steps.length - 1) {
+        html += '<div class="stepper-arrow">' + ICONS.arrowRight + "</div>";
+      }
+    });
+    el.innerHTML = html;
+  }
+
+  /* ---------- revenue breakdown bar ---------- */
+  function renderRevenueBreakdown(summary) {
+    const el = document.getElementById("revenue-breakdown");
+    const subEl = document.getElementById("breakdown-sub");
+    if (!el) return;
+    if (subEl) subEl.textContent = "Where " + summary.label + "'s revenue goes";
+
+    const styles = getComputedStyle(document.documentElement);
+    const seriesBlue = styles.getPropertyValue("--series-1").trim();
+    const seriesOrange = styles.getPropertyValue("--series-2").trim();
+    const good = styles.getPropertyValue("--good").trim();
+    const critical = styles.getPropertyValue("--critical").trim();
+
+    const cost = summary.purchaseCostOfSold;
+    const exp = summary.expensesTotal;
+    const profit = summary.profit;
+
+    if (summary.soldList.length === 0 && exp === 0) {
+      el.innerHTML = '<p class="mini-empty">No sales or expenses recorded for ' + escapeHtml(summary.label) + " yet.</p>";
+      return;
+    }
+
+    const segments = [
+      { label: "Purchase cost", value: cost, color: seriesBlue },
+      { label: "Expenses", value: exp, color: seriesOrange },
+      { label: "Net profit", value: Math.max(profit, 0), color: good },
+    ];
+    const positiveTotal = segments.reduce((s, x) => s + x.value, 0) || 1;
+
+    let track = "";
+    segments.forEach((seg) => {
+      if (seg.value <= 0) return;
+      const pct = (seg.value / positiveTotal) * 100;
+      track += '<div class="breakdown-seg" style="width:' + pct.toFixed(2) + "%;background:" + seg.color + ';" title="' + escapeAttr(seg.label) + ": " + escapeAttr(formatMoney(seg.value)) + '"></div>';
+    });
+
+    let legend = '<div class="breakdown-legend">';
+    segments.forEach((seg) => {
+      legend += '<span><i style="background:' + seg.color + '"></i>' + seg.label + ": <b>" + formatMoney(seg.value) + "</b></span>";
+    });
+    legend += "</div>";
+
+    let footer = '<div class="breakdown-total">Revenue <b>' + formatMoney(summary.revenue) + "</b>";
+    if (profit < 0) {
+      footer += ' · <span style="color:' + critical + '">Loss of ' + formatMoney(Math.abs(profit)) + "</span>";
+    }
+    footer += "</div>";
+
+    el.innerHTML = '<div class="breakdown-track">' + track + "</div>" + legend + footer;
   }
 
   function lastNMonths(n) {
@@ -654,7 +915,7 @@
 
     const n = data.length;
     const slot = plotW / n;
-    const barW = Math.min(28, slot * 0.6);
+    const barW = Math.min(24, slot * 0.6);
 
     // label thinning
     let showEvery = 1;

@@ -11,24 +11,29 @@
 
   <aside class="sidebar">
     <div class="brand">
-      <span class="brand-mark">⚡</span>
+      <span class="brand-mark"><svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
       <span class="brand-name">EV Showroom</span>
     </div>
     <nav class="nav">
       <button class="nav-item active" data-tab="dashboard">
-        <span class="nav-icon">◧</span> Dashboard
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="nav-label">Dashboard</span>
       </button>
       <button class="nav-item" data-tab="stock">
-        <span class="nav-icon">▤</span> Stock &amp; Purchase
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        <span class="nav-label">Stock &amp; Purchase</span>
       </button>
       <button class="nav-item" data-tab="sales">
-        <span class="nav-icon">↗</span> Sales
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <span class="nav-label">Sales</span>
       </button>
       <button class="nav-item" data-tab="expenses">
-        <span class="nav-icon">−</span> Expenses
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span class="nav-label">Expenses</span>
       </button>
       <button class="nav-item" data-tab="reports">
-        <span class="nav-icon">▦</span> Reports
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="nav-label">Reports</span>
       </button>
     </nav>
     <div class="sidebar-footer">
@@ -36,7 +41,11 @@
         <span>Currency symbol</span>
         <input type="text" id="settings-currency" maxlength="3" value="₹">
       </label>
-      <button class="btn btn-ghost btn-sm" id="theme-toggle" type="button">Toggle theme</button>
+      <button class="btn btn-ghost btn-sm theme-toggle" id="theme-toggle" type="button" title="Toggle theme">
+        <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span class="sr-only">Toggle theme</span>
+      </button>
     </div>
   </aside>
 
@@ -48,10 +57,24 @@
         <div>
           <h1>Dashboard</h1>
           <p class="subtitle">Live snapshot of your showroom</p>
+          <span class="month-badge" id="month-badge">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="month-badge-text">This month</span>
+          </span>
         </div>
       </header>
 
       <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="card" id="stock-flow-card">
+        <div class="card-header">
+          <div>
+            <h2>Stock movement</h2>
+            <p class="card-sub" id="stock-flow-sub">Opening stock → purchases → sales → current stock, calculated automatically</p>
+          </div>
+        </div>
+        <div class="stepper" id="stock-flow"></div>
+      </div>
 
       <div class="grid-2">
         <div class="card">
@@ -64,11 +87,19 @@
 
         <div class="card">
           <div class="card-header">
-            <h2>Recent sales</h2>
-            <p class="card-sub">Last 5 transactions</p>
+            <h2>Revenue breakdown</h2>
+            <p class="card-sub" id="breakdown-sub">Where this month's revenue goes</p>
           </div>
-          <div id="recent-sales" class="mini-table-wrap"></div>
+          <div id="revenue-breakdown"></div>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Recent sales</h2>
+          <p class="card-sub">Last 5 transactions</p>
+        </div>
+        <div id="recent-sales" class="mini-table-wrap"></div>
       </div>
     </section>
 
@@ -79,11 +110,14 @@
           <h1>Stock &amp; Purchase</h1>
           <p class="subtitle">Every vehicle you've bought, in stock or sold</p>
         </div>
-        <button class="btn btn-primary" id="btn-add-vehicle" type="button">+ Add vehicle</button>
+        <button class="btn btn-primary" id="btn-add-vehicle" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add vehicle</button>
       </header>
 
       <div class="toolbar">
-        <input type="search" id="stock-search" placeholder="Search model, reg no, VIN...">
+        <div class="search-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="stock-search" placeholder="Search model, reg no, VIN...">
+        </div>
         <select id="stock-filter">
           <option value="all">All vehicles</option>
           <option value="in_stock">In stock</option>
@@ -117,7 +151,7 @@
           <h1>Sales</h1>
           <p class="subtitle">Profit is calculated automatically per sale</p>
         </div>
-        <button class="btn btn-primary" id="btn-add-sale" type="button">+ Record sale</button>
+        <button class="btn btn-primary" id="btn-add-sale" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Record sale</button>
       </header>
 
       <div class="table-wrap">
@@ -147,7 +181,7 @@
           <h1>Expenses</h1>
           <p class="subtitle">Per-vehicle costs and general overhead</p>
         </div>
-        <button class="btn btn-primary" id="btn-add-expense" type="button">+ Add expense</button>
+        <button class="btn btn-primary" id="btn-add-expense" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add expense</button>
       </header>
 
       <div class="table-wrap">
