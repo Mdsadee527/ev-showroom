@@ -33,6 +33,7 @@
   let invoices = load(KEYS.invoices, []);
   let business = load(KEYS.business, {
     name: "",
+    tagline: "Electric Scooty Sales, Service & Spare Parts.",
     gstin: "",
     address: "",
     state: "",
@@ -42,6 +43,13 @@
     gstRate: 5,
     invoicePrefix: "INV",
     nextInvoiceNo: 1,
+    warrantyTerms:
+      "WARRANTY Company Rules & Regulation.\n" +
+      "Goods once sold are not returnable.\n" +
+      "The graphene battery / lead acid battery comes with a 1-year warranty.\n" +
+      "It may take 15 days for resolved the motor, battery and controller issue.\n" +
+      "The warranty does not cover swollen or burst batteries.\n" +
+      "The warranty is void if the motor and controller burn out.",
   });
 
   function persist() {
@@ -354,130 +362,147 @@
   }
 
   /* ---------- printable tax invoice (dealer DMS style) ---------- */
-  function buildInvoiceHtml(inv) {
-    const gstHalf = inv.gstRate / 2;
-    const gstAmount = inv.interState ? inv.igst : inv.cgst + inv.sgst;
-    const now = new Date();
-    const printedOn = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) +
-      " " + now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  function ddmmyy(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso + "T00:00:00");
+    if (isNaN(d)) return iso;
+    return String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getFullYear()).slice(2);
+  }
 
-    const taxCols = inv.interState
-      ? "<th class='num'>IGST (" + inv.gstRate + "%)</th>"
-      : "<th class='num'>CGST (" + gstHalf + "%)</th><th class='num'>SGST (" + gstHalf + "%)</th>";
-    const taxVals = inv.interState
-      ? "<td class='num'>" + formatMoney(inv.igst) + "</td>"
-      : "<td class='num'>" + formatMoney(inv.cgst) + "</td><td class='num'>" + formatMoney(inv.sgst) + "</td>";
+  // customer-bill layout modeled on a physical carbon-copy receipt-book bill
+  function buildInvoiceHtml(inv) {
+    const v = getVehicle(inv.vehicleId) || {};
+    const gstAmount = inv.interState ? inv.igst : inv.cgst + inv.sgst;
+    const roundOff = Math.round((inv.total - (inv.taxableValue + gstAmount)) * 100) / 100;
+    const taxRows = inv.interState
+      ? "<tr><td>Add IGST %</td><td class='num'>" + formatMoney(inv.igst) + "</td></tr>"
+      : "<tr><td>Add CGST %</td><td class='num'>" + formatMoney(inv.cgst) + "</td></tr>" +
+        "<tr><td>Add SGST %</td><td class='num'>" + formatMoney(inv.sgst) + "</td></tr>";
+
+    const batteryLines = (v.batteryNumbers || "").split("\n").map((s) => s.trim()).filter(Boolean);
+    let descLines = "<div class='desc-line'><b>Model Name -</b> " + escapeHtml(inv.vehicleLabel) + "</div>";
+    if (v.colour) descLines += "<div class='desc-line'><b>Colour -</b> " + escapeHtml(v.colour) + "</div>";
+    if (v.controllerNo) descLines += "<div class='desc-line'><b>Controller No.-</b> " + escapeHtml(v.controllerNo) + "</div>";
+    if (v.motorNo) descLines += "<div class='desc-line'><b>Motor No.-</b> " + escapeHtml(v.motorNo) + "</div>";
+    if (v.chassisNo) descLines += "<div class='desc-line'><b>Chasis No.-</b> " + escapeHtml(v.chassisNo) + "</div>";
+    if (v.chargerNo) descLines += "<div class='desc-line'><b>Charger No.-</b> " + escapeHtml(v.chargerNo) + "</div>";
+    if (v.batteryCompany) descLines += "<div class='desc-line'><b>Battery Company Name -</b> " + escapeHtml(v.batteryCompany) + "</div>";
+    if (batteryLines.length) {
+      descLines += "<div class='desc-line'><b>Battery No.</b></div>";
+      batteryLines.forEach((b, i) => { descLines += "<div class='desc-line battery-num'>" + (i + 1) + ". " + escapeHtml(b) + "</div>"; });
+    }
+
+    const warrantyItems = (business.warrantyTerms || "").split("\n").map((s) => s.trim()).filter(Boolean);
+    const warrantyHtml = warrantyItems.map((line) => "<li>" + escapeHtml(line) + "</li>").join("");
 
     return (
       "<!doctype html><html><head><meta charset='utf-8'><title>" + escapeHtml(inv.invoiceNo) + "</title>" +
       "<style>" +
       "*{box-sizing:border-box;}" +
-      "body{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:11px;max-width:800px;margin:24px auto;padding:0 16px;}" +
+      "body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;font-size:12px;max-width:720px;margin:20px auto;padding:0 14px;}" +
       "table{width:100%;border-collapse:collapse;}" +
-      "td,th{border:1px solid #000;padding:5px 7px;text-align:left;vertical-align:top;font-size:11px;}" +
-      "th{font-weight:700;background:#f2f2f2;}" +
+      "td,th{border:1px solid #8a2331;padding:5px 8px;text-align:left;vertical-align:top;font-size:12px;}" +
       ".num{text-align:right;}" +
-      ".no-border td,.no-border th{border:none;}" +
-      "b,strong{font-weight:700;}" +
-      ".topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}" +
-      ".qr{width:74px;height:74px;border:1px solid #000;display:flex;align-items:center;justify-content:center;font-size:9px;text-align:center;color:#555;}" +
-      ".doctitle{font-size:19px;font-weight:700;letter-spacing:.03em;text-align:center;flex:1;}" +
-      ".copytype{font-size:11px;font-weight:700;text-align:right;width:74px;white-space:nowrap;}" +
-      "table.parties td{padding:8px 10px;}" +
-      ".party-label{font-weight:700;margin-bottom:4px;display:block;}" +
-      ".party-name{font-weight:700;font-size:12px;}" +
-      ".row-label{font-weight:700;display:inline-block;min-width:78px;}" +
-      "table.meta td{text-align:center;font-weight:700;}" +
-      "table.items td, table.items th{font-size:10.5px;}" +
-      ".item-desc-main{font-weight:700;}" +
-      ".item-desc-sub{color:#333;}" +
-      "table.subtotal td{font-weight:700;}" +
-      ".payable{margin-top:-1px;}" +
-      ".payable td{font-weight:700;font-size:12px;}" +
-      ".words td{font-weight:700;}" +
-      ".reverse{margin:10px 0;font-size:11px;}" +
-      ".signblock{margin-top:46px;display:flex;justify-content:flex-end;}" +
-      ".signblock .box{text-align:center;font-size:11px;}" +
-      ".signblock .line{border-top:1px solid #000;margin-top:40px;padding-top:4px;min-width:200px;}" +
-      ".disclaimer{text-align:center;font-weight:700;font-size:11px;margin:22px 0 14px;}" +
-      ".pagefoot{display:flex;justify-content:space-between;border-top:1px solid #000;padding-top:6px;font-size:10.5px;}" +
+
+      ".headband{background:#f7ecd6;border:2px solid #8a2331;border-bottom:none;padding:8px 12px 0;}" +
+      ".headtop{display:flex;justify-content:space-between;font-size:11px;font-weight:700;}" +
+      ".headtop .no{color:#c81e2c;}" +
+      ".logo-row{display:flex;align-items:center;justify-content:center;gap:10px;padding:2px 0 6px;}" +
+      ".logo-row svg{flex-shrink:0;}" +
+      ".logo-word{font-size:30px;font-weight:800;letter-spacing:.01em;line-height:1;}" +
+      ".logo-word .m{color:#c81e2c;}" +
+      ".logo-word .ev{color:#1955a8;}" +
+      ".tagline{background:#1f7a3d;color:#fff;text-align:center;font-size:12px;font-weight:700;padding:4px;margin:0 -12px;}" +
+      ".addr{display:flex;align-items:center;gap:6px;justify-content:center;font-size:11.5px;font-weight:700;padding:6px 0 2px;}" +
+      ".gstline{text-align:center;font-size:11.5px;font-weight:700;padding:2px 0 8px;}" +
+
+      ".custbox{border:2px solid #8a2331;border-top:none;padding:8px 12px;font-size:12.5px;}" +
+      ".custbox .r{display:flex;gap:18px;margin:3px 0;}" +
+      ".blank{border-bottom:1px dotted #444;padding:0 4px;display:inline-block;min-width:60px;}" +
+      ".blank.grow{flex:1;}" +
+
+      "table.items th{background:#1955a8;color:#fff;font-weight:700;border-color:#8a2331;}" +
+      "table.items{border:2px solid #8a2331;border-top:none;border-collapse:collapse;}" +
+      "table.items td{border-color:#8a2331;}" +
+      ".desc-line{line-height:1.55;}" +
+      ".battery-num{padding-left:14px;}" +
+      ".amount-cell{font-size:15px;font-weight:800;text-align:right;}" +
+
+      ".bottomrow{display:flex;gap:0;border:2px solid #8a2331;border-top:none;}" +
+      ".words-box{flex:1.4;padding:10px 12px;font-size:12.5px;border-right:2px solid #8a2331;}" +
+      ".words-box .amt{font-weight:700;}" +
+      ".totals-box{flex:1;}" +
+      ".totals-box table{border:none;}" +
+      ".totals-box td{border:none;border-bottom:1px solid #d9b98f;font-size:12.5px;}" +
+      ".totals-box tr.total td{border-top:2px solid #8a2331;border-bottom:none;font-weight:800;font-size:14px;padding-top:7px;}" +
+      ".eoe{text-align:right;font-size:10.5px;color:#555;padding:2px 8px 0;}" +
+
+      ".footrow{display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;gap:20px;}" +
+      ".sig-line{border-top:1px solid #000;margin-top:34px;width:170px;font-size:11px;text-align:center;padding-top:3px;}" +
+      ".forbox{text-align:center;}" +
+      ".forbox .label{font-size:12px;font-weight:700;margin-bottom:4px;}" +
+
+      ".warranty{margin-top:18px;font-size:9.5px;color:#333;}" +
+      ".warranty ul{margin:4px 0 0;padding-left:16px;}" +
+      ".warranty li{margin-bottom:2px;}" +
+
       "@media print{.noprint{display:none;}body{margin:0 auto;}}" +
       "</style></head><body>" +
 
-      "<div class='topbar'>" +
-      "<div class='qr'>QR Code</div>" +
-      "<div class='doctitle'>TAX INVOICE</div>" +
-      "<div class='copytype'>ORIGINAL FOR<br>RECIPIENT</div>" +
+      "<div class='headband'>" +
+      "<div class='headtop'><span class='no'>No.- " + escapeHtml(inv.receiptNo || inv.invoiceNo) + "</span><span>Mob.- " + escapeHtml(business.mobile || "—") + "</span></div>" +
+      "<div class='logo-row'>" +
+      "<svg viewBox='0 0 100 100' width='46' height='46'><defs><linearGradient id='g" + inv.id + "' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='#2a78d6'/><stop offset='100%' stop-color='#4a3aa7'/></linearGradient></defs><polygon points='50,4 91,27 91,73 50,96 9,73 9,27' fill='url(#g" + inv.id + ")'/><polygon points='58,20 34,56 48,56 42,82 68,44 53,44 58,20' fill='#fff'/></svg>" +
+      "<div class='logo-word'><span class='m'>MASTER</span><span class='ev'>.EV</span></div>" +
+      "</div>" +
+      "<div class='tagline'>" + escapeHtml(business.tagline || "Electric Scooty Sales, Service &amp; Spare Parts.") + "</div>" +
+      "<div class='addr'>📍 " + escapeHtml(business.address || "Address not set") + "</div>" +
+      "<div class='gstline'>GST IN : " + escapeHtml(business.gstin || "—") + "</div>" +
       "</div>" +
 
-      "<table class='parties'><tr>" +
-      "<td style='width:34%'>" +
-      "<span class='party-label'>Billed To:</span>" +
-      "<span class='party-name'>" + escapeHtml(inv.buyerName || "Cash Customer") + "</span><br>" +
-      (inv.buyerAddress ? escapeHtml(inv.buyerAddress) + "<br>" : "") +
-      (inv.buyerMobile ? "<span class='row-label'>Ph Number</span>: " + escapeHtml(inv.buyerMobile) + "<br>" : "") +
-      (inv.buyerEmail ? "<span class='row-label'>Email</span>: " + escapeHtml(inv.buyerEmail) + "<br>" : "") +
-      "<span class='row-label'>GSTIN</span>: " + escapeHtml(inv.buyerGstin || "Unregistered (B2C)") + "<br>" +
-      "<span class='row-label'>POS</span>: " + escapeHtml(inv.buyerState || "—") +
-      "</td>" +
-      "<td style='width:34%'>" +
-      "<span class='party-label'>Billed From:</span>" +
-      "<span class='party-name'>" + escapeHtml(business.name || "Your Business Name") + "</span><br>" +
-      (business.address ? escapeHtml(business.address) + "<br>" : "") +
-      (business.mobile ? "<span class='row-label'>Mobile</span>: " + escapeHtml(business.mobile) + "<br>" : "") +
-      (business.email ? "<span class='row-label'>Email</span>: " + escapeHtml(business.email) + "<br>" : "") +
-      "<span class='row-label'>GSTIN</span>: " + escapeHtml(business.gstin || "—") +
-      "</td>" +
-      "<td style='width:32%'>" +
-      "<span class='row-label'>Invoice No</span>: " + escapeHtml(inv.invoiceNo) + "<br><br>" +
-      "<span class='row-label'>Invoice Date</span>: " + formatDate(inv.date) +
-      "</td>" +
-      "</tr></table>" +
-
-      "<table class='meta'><tr>" +
-      "<th style='width:34%'>HSN / SAC</th><th style='width:33%'>Supply Type</th><th style='width:33%'>Place of Supply</th>" +
-      "</tr><tr>" +
-      "<td>" + escapeHtml(inv.hsnCode || "—") + "</td>" +
-      "<td>" + (inv.interState ? "Inter-state (IGST)" : "Intra-state (CGST+SGST)") + "</td>" +
-      "<td>" + escapeHtml(inv.buyerState || "—") + "</td>" +
-      "</tr></table>" +
+      "<div class='custbox'>" +
+      "<div class='r'>Name <span class='blank grow'>" + escapeHtml(inv.buyerName || "") + "</span></div>" +
+      "<div class='r'>Address <span class='blank grow'>" + escapeHtml(inv.buyerAddress || "") + "</span> Mobile No. <span class='blank'>" + escapeHtml(inv.buyerMobile || "") + "</span></div>" +
+      "<div class='r'>GST No. <span class='blank grow'>" + escapeHtml(inv.buyerGstin || "") + "</span> Date <span class='blank'>" + ddmmyy(inv.date) + "</span></div>" +
+      "</div>" +
 
       "<table class='items'><thead><tr>" +
-      "<th style='width:34%'>Item Description &amp; HSN</th><th class='num'>Unit Price</th><th class='num'>Qty</th>" +
-      "<th class='num'>Taxable Amount</th>" + taxCols + "<th class='num'>Total Amount (Rs)</th>" +
-      "</tr></thead><tbody>" +
-      "<tr>" +
-      "<td><span class='item-desc-main'>" + escapeHtml(inv.vehicleLabel) + "</span><br>" +
-      "<span class='item-desc-sub'>HSN: " + escapeHtml(inv.hsnCode || "—") + "</span></td>" +
-      "<td class='num'>" + formatMoney(inv.taxableValue) + "</td>" +
+      "<th style='width:58%'>Discription</th><th class='num' style='width:12%'>Qnty.</th><th class='num' style='width:14%'>Rate</th><th class='num' style='width:16%'>Amount</th>" +
+      "</tr></thead><tbody><tr>" +
+      "<td>" + descLines + "</td>" +
       "<td class='num'>1</td>" +
       "<td class='num'>" + formatMoney(inv.taxableValue) + "</td>" +
-      taxVals +
-      "<td class='num'>" + formatMoney(inv.total) + "</td>" +
-      "</tr>" +
-      "</tbody></table>" +
+      "<td class='amount-cell'>" + formatMoney(inv.total) + "</td>" +
+      "</tr></tbody></table>" +
 
-      "<table class='subtotal no-border'><tr>" +
-      "<td style='width:64%;text-align:right;'>Sub Total</td>" +
-      "<td class='num' style='width:12%'>" + formatMoney(inv.taxableValue) + "</td>" +
-      "<td class='num' style='width:12%'>" + formatMoney(gstAmount) + "</td>" +
-      "<td class='num' style='width:12%'>" + formatMoney(inv.total) + "</td>" +
-      "</tr><tr class='payable'>" +
-      "<td style='text-align:right;' colspan='3'>Net Payable Amount (Rs)</td>" +
-      "<td class='num'>" + formatMoney(inv.total) + "</td>" +
-      "</tr></table>" +
+      "<div class='bottomrow'>" +
+      "<div class='words-box'>Rupees <span class='amt'>" + escapeHtml(amountInWords(inv.total).replace(/^Rupees /, "")) + "</span></div>" +
+      "<div class='totals-box'><table>" +
+      "<tr><td>Item Value</td><td class='num'>" + formatMoney(inv.taxableValue) + "</td></tr>" +
+      taxRows +
+      "<tr><td>Round off Sale</td><td class='num'>" + (Math.round(roundOff) ? formatMoney(roundOff) : "") + "</td></tr>" +
+      "<tr class='total'><td>TOTAL</td><td class='num'>" + formatMoney(inv.total) + "/-</td></tr>" +
+      "</table><div class='eoe'>E. &amp; O. E.</div></div>" +
+      "</div>" +
 
-      "<table class='words'><tr><td style='width:22%'>Amount in Words</td><td>" + escapeHtml(amountInWords(inv.total)) + "</td></tr></table>" +
+      "<div class='footrow'>" +
+      "<div><div class='sig-line'>Customer Signature</div></div>" +
+      "<div class='forbox'>" +
+      "<div class='label'>For, Master.EV</div>" +
+      "<svg viewBox='0 0 140 140' width='90' height='90'>" +
+      "<defs><path id='circletop" + inv.id + "' d='M 20,70 A 50,50 0 0 1 120,70'/><path id='circlebot" + inv.id + "' d='M 120,70 A 50,50 0 0 1 20,70'/></defs>" +
+      "<circle cx='70' cy='70' r='58' fill='none' stroke='#8a2331' stroke-width='2'/>" +
+      "<circle cx='70' cy='70' r='50' fill='none' stroke='#8a2331' stroke-width='1'/>" +
+      "<text font-size='11' font-weight='700' fill='#8a2331'><textPath href='#circletop" + inv.id + "' startOffset='50%' text-anchor='middle'>MASTER.EV</textPath></text>" +
+      "<text font-size='8' fill='#8a2331'><textPath href='#circlebot" + inv.id + "' startOffset='50%' text-anchor='middle'>" + escapeHtml((business.address || "").slice(0, 40)) + "</textPath></text>" +
+      "<text x='70' y='75' font-size='13' text-anchor='middle' fill='#8a2331'>★</text>" +
+      "</svg>" +
+      "</div>" +
+      "</div>" +
 
-      "<div class='reverse'>Tax amount payable on reverse charges (in Rs.) : <b>NIL</b></div>" +
+      "<div class='warranty'><ul>" + warrantyHtml + "</ul></div>" +
 
-      "<div class='signblock'><div class='box'>For " + escapeHtml(business.name || "the business") + "<div class='line'>Sign of Customer / Authorised Signatory</div></div></div>" +
-
-      "<div class='disclaimer'>This is a system generated invoice and does not require a physical signature or company seal for authentication.</div>" +
-
-      "<div class='pagefoot'><div>Printed On: " + escapeHtml(printedOn) + "</div><div>Page 1 of 1</div></div>" +
-
-      "<div class='noprint' style='margin-top:24px;text-align:center;'><button onclick='window.print()' style='font-size:14px;padding:10px 20px;cursor:pointer;'>Print / Save as PDF</button></div>" +
+      "<div class='noprint' style='margin-top:22px;text-align:center;'><button onclick='window.print()' style='font-size:14px;padding:10px 20px;cursor:pointer;'>Print / Save as PDF</button></div>" +
       "</body></html>"
     );
   }
@@ -538,6 +563,7 @@
   /* ================= business & GST settings ================= */
   const bizFields = {
     name: document.getElementById("biz-name"),
+    tagline: document.getElementById("biz-tagline"),
     gstin: document.getElementById("biz-gstin"),
     address: document.getElementById("biz-address"),
     state: document.getElementById("biz-state"),
@@ -546,6 +572,7 @@
     hsnCode: document.getElementById("biz-hsn"),
     gstRate: document.getElementById("biz-gst-rate"),
     invoicePrefix: document.getElementById("biz-invoice-prefix"),
+    warrantyTerms: document.getElementById("biz-warranty-terms"),
   };
   Object.keys(bizFields).forEach((key) => {
     bizFields[key].value = business[key] != null ? business[key] : "";
@@ -588,6 +615,13 @@
     document.getElementById("vehicle-price").value = v.purchasePrice || 0;
     document.getElementById("vehicle-expected-price").value = v.expectedSalePrice || "";
     document.getElementById("vehicle-supplier").value = v.supplier || "";
+    document.getElementById("vehicle-colour").value = v.colour || "";
+    document.getElementById("vehicle-controller-no").value = v.controllerNo || "";
+    document.getElementById("vehicle-motor-no").value = v.motorNo || "";
+    document.getElementById("vehicle-chassis-no").value = v.chassisNo || "";
+    document.getElementById("vehicle-charger-no").value = v.chargerNo || "";
+    document.getElementById("vehicle-battery-company").value = v.batteryCompany || "";
+    document.getElementById("vehicle-battery-numbers").value = v.batteryNumbers || "";
     document.getElementById("vehicle-notes").value = v.notes || "";
     openDialog("dlg-vehicle");
   }
@@ -604,6 +638,13 @@
       purchasePrice: Number(document.getElementById("vehicle-price").value || 0),
       expectedSalePrice: document.getElementById("vehicle-expected-price").value === "" ? null : Number(document.getElementById("vehicle-expected-price").value),
       supplier: document.getElementById("vehicle-supplier").value.trim(),
+      colour: document.getElementById("vehicle-colour").value.trim(),
+      controllerNo: document.getElementById("vehicle-controller-no").value.trim(),
+      motorNo: document.getElementById("vehicle-motor-no").value.trim(),
+      chassisNo: document.getElementById("vehicle-chassis-no").value.trim(),
+      chargerNo: document.getElementById("vehicle-charger-no").value.trim(),
+      batteryCompany: document.getElementById("vehicle-battery-company").value.trim(),
+      batteryNumbers: document.getElementById("vehicle-battery-numbers").value.trim(),
       notes: document.getElementById("vehicle-notes").value.trim(),
       status: existing ? existing.status : "in_stock",
     };
@@ -781,6 +822,7 @@
     document.getElementById("invoice-supply-type").value = "intra";
     document.getElementById("invoice-gst-rate").value = business.gstRate || 5;
     document.getElementById("invoice-hsn").value = business.hsnCode || "8711";
+    document.getElementById("invoice-receipt-no").value = "";
     updateInvoiceSummary();
     openDialog("dlg-invoice");
   }
@@ -805,6 +847,7 @@
       vehicleId: sale.vehicleId,
       vehicleLabel: v ? vehicleLabel(v) : "Vehicle",
       hsnCode: document.getElementById("invoice-hsn").value.trim(),
+      receiptNo: document.getElementById("invoice-receipt-no").value.trim(),
       buyerName: document.getElementById("invoice-buyer-name").value.trim() || sale.buyer || "",
       buyerAddress: document.getElementById("invoice-buyer-address").value.trim(),
       buyerMobile: document.getElementById("invoice-buyer-mobile").value.trim() || sale.contact || "",

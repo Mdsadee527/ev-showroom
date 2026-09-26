@@ -288,8 +288,9 @@
         </div>
         <div class="field-grid">
           <label>Business name<input type="text" id="biz-name" placeholder="e.g. Zelio E-Vehicles Showroom"></label>
-          <label>GSTIN<input type="text" id="biz-gstin" placeholder="e.g. 19ABCDE1234F1Z5" maxlength="15"></label>
+          <label>Tagline<input type="text" id="biz-tagline" placeholder="e.g. Electric Scooty Sales, Service & Spare Parts."></label>
           <label class="full">Address<input type="text" id="biz-address" placeholder="Street, City, PIN"></label>
+          <label>GSTIN<input type="text" id="biz-gstin" placeholder="e.g. 19ABCDE1234F1Z5" maxlength="15"></label>
           <label>State<input type="text" id="biz-state" placeholder="e.g. West Bengal"></label>
           <label>Mobile number<input type="text" id="biz-mobile" placeholder="e.g. 9830012345"></label>
           <label>Email<input type="email" id="biz-email" placeholder="e.g. sales@yourshowroom.in"></label>
@@ -297,6 +298,7 @@
           <label>Default GST rate (%)<input type="number" id="biz-gst-rate" min="0" max="28" step="0.1"></label>
           <label>Invoice number prefix<input type="text" id="biz-invoice-prefix" placeholder="e.g. INV"></label>
         </div>
+        <label class="full" style="margin-top:12px;">Warranty terms (one per line, printed on every customer bill)<textarea id="biz-warranty-terms" rows="6"></textarea></label>
       </div>
 
       <div class="card">
@@ -345,6 +347,16 @@
       <label>Expected selling price<input type="number" id="vehicle-expected-price" min="0" step="1" placeholder="Optional — leave blank if unknown"></label>
       <label>Supplier<input type="text" id="vehicle-supplier" placeholder="e.g. Authorized dealer"></label>
     </div>
+    <p class="dlg-subhead">Vehicle identification (printed on the customer bill)</p>
+    <div class="field-grid">
+      <label>Colour<input type="text" id="vehicle-colour" placeholder="e.g. Red"></label>
+      <label>Controller No.<input type="text" id="vehicle-controller-no" placeholder="e.g. M5RMGCB08525H0010"></label>
+      <label>Motor No.<input type="text" id="vehicle-motor-no" placeholder="e.g. M5RMGCB08525H0120"></label>
+      <label>Chasis No.<input type="text" id="vehicle-chassis-no" placeholder="e.g. M5RMGCB08S25H0062"></label>
+      <label>Charger No.<input type="text" id="vehicle-charger-no" placeholder="e.g. Amptex"></label>
+      <label>Battery Company Name<input type="text" id="vehicle-battery-company" placeholder="e.g. Electpide"></label>
+    </div>
+    <label class="full">Battery numbers (one per line)<textarea id="vehicle-battery-numbers" rows="3" placeholder="973244&#10;973243&#10;973242"></textarea></label>
     <label class="full">Notes<textarea id="vehicle-notes" rows="2"></textarea></label>
     <div class="dlg-actions">
       <button type="button" class="btn btn-ghost" data-close>Cancel</button>
@@ -429,6 +441,7 @@
       </label>
       <label>GST rate (%)<input type="number" id="invoice-gst-rate" min="0" max="28" step="0.1"></label>
       <label>HSN code<input type="text" id="invoice-hsn"></label>
+      <label>Receipt book no. (optional)<input type="text" id="invoice-receipt-no" placeholder="e.g. Q54"></label>
     </div>
     <p class="card-sub">Sale price is treated as GST-inclusive — taxable value and tax are split out automatically.</p>
     <div class="dlg-actions">
