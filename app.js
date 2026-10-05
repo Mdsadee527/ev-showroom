@@ -11,8 +11,9 @@
     dataVersion: "evshowroom.dataVersion",
     business: "evshowroom.business",
     invoices: "evshowroom.invoices",
+    handbills: "evshowroom.handbills",
   };
-  const CURRENT_SEED_VERSION = "4"; // bump to apply a new one-time data migration on next load
+  const CURRENT_SEED_VERSION = "5"; // bump to apply a new one-time data migration on next load
 
   function load(key, fallback) {
     try {
@@ -31,18 +32,21 @@
   let expenses = load(KEYS.expenses, []);
   let settings = load(KEYS.settings, { currency: "₹" });
   let invoices = load(KEYS.invoices, []);
+  let handbills = load(KEYS.handbills, []);
   let business = load(KEYS.business, {
-    name: "",
+    name: "Master.EV",
     tagline: "Electric Scooty Sales, Service & Spare Parts.",
-    gstin: "",
-    address: "",
+    gstin: "19ACFFM4177M1ZL",
+    address: "Mithpukur (Near Hospital), Boalghata Road, Shason, N. 24 Pgs.",
     state: "",
-    mobile: "",
+    mobile: "9647321464",
     email: "",
     hsnCode: "8711",
     gstRate: 5,
     invoicePrefix: "INV",
     nextInvoiceNo: 1,
+    handbillPrefix: "HB",
+    nextHandbillNo: 1,
     warrantyTerms:
       "WARRANTY Company Rules & Regulation.\n" +
       "Goods once sold are not returnable.\n" +
@@ -58,6 +62,7 @@
     save(KEYS.expenses, expenses);
     save(KEYS.settings, settings);
     save(KEYS.invoices, invoices);
+    save(KEYS.handbills, handbills);
     save(KEYS.business, business);
   }
 
@@ -145,6 +150,13 @@
       });
       business.nextInvoiceNo = Number(business.nextInvoiceNo || 1) + 1;
     }
+
+    // v5: fill in the real printed-receipt-book business details, without overwriting
+    // anything already entered by hand in Settings
+    if (!business.mobile) business.mobile = "9647321464";
+    if (!business.address) business.address = "Mithpukur (Near Hospital), Boalghata Road, Shason, N. 24 Pgs.";
+    if (!business.gstin) business.gstin = "19ACFFM4177M1ZL";
+    if (!business.name) business.name = "Master.EV";
 
     persist();
     save(KEYS.dataVersion, CURRENT_SEED_VERSION);
@@ -328,6 +340,15 @@
     return invoices.find((i) => i.saleId === saleId);
   }
 
+  function nextHandbillNumber(dateISO) {
+    const seq = String(business.nextHandbillNo || 1).padStart(4, "0");
+    return (business.handbillPrefix || "HB") + "/" + financialYearLabel(dateISO) + "/" + seq;
+  }
+
+  function handbillForSale(saleId) {
+    return handbills.find((h) => h.saleId === saleId);
+  }
+
   /* ---------- Indian-format amount in words ---------- */
   function numberToWordsIndian(num) {
     const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
@@ -367,6 +388,29 @@
     const d = new Date(iso + "T00:00:00");
     if (isNaN(d)) return iso;
     return String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getFullYear()).slice(2);
+  }
+
+  // small scooter glyph flanking the logo on printed bills, mirrored for the right side
+  function scooterIconSvg(mirror, color) {
+    return (
+      "<svg viewBox='0 0 64 36' width='34' height='19'" + (mirror ? " style='transform:scaleX(-1)'" : "") + ">" +
+      "<g fill='none' stroke='" + (color || "#c81e2c") + "' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<circle cx='12' cy='28' r='6'/><circle cx='48' cy='28' r='6'/>" +
+      "<path d='M12 28 L20 15 L34 15 L40 23 L48 23'/>" +
+      "<path d='M34 15 L34 7 L42 7'/>" +
+      "<path d='M16 15 h8'/>" +
+      "</g></svg>"
+    );
+  }
+
+  // red bar with a diagonal hazard-stripe accent, used under the tagline on printed bills
+  function addressStripeBarHtml(address) {
+    return (
+      "<div class='addr-bar'>" +
+      "<span class='addr-text'>📍 " + escapeHtml(address || "Address not set") + "</span>" +
+      "<span class='addr-stripes'></span>" +
+      "</div>"
+    );
   }
 
   // customer-bill layout modeled on a physical carbon-copy receipt-book bill
@@ -413,8 +457,10 @@
       ".logo-word .m{color:#c81e2c;}" +
       ".logo-word .ev{color:#1955a8;}" +
       ".tagline{background:#1f7a3d;color:#fff;text-align:center;font-size:12px;font-weight:700;padding:4px;margin:0 -12px;}" +
-      ".addr{display:flex;align-items:center;gap:6px;justify-content:center;font-size:11.5px;font-weight:700;padding:6px 0 2px;}" +
-      ".gstline{text-align:center;font-size:11.5px;font-weight:700;padding:2px 0 8px;}" +
+      ".addr-bar{display:flex;align-items:stretch;background:#c81e2c;color:#fff;margin:0 -12px;min-height:22px;overflow:hidden;}" +
+      ".addr-text{flex:1;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 10px;}" +
+      ".addr-stripes{flex:0 0 90px;background:repeating-linear-gradient(45deg,#fff 0 8px,#c81e2c 8px 16px);}" +
+      ".gstline{text-align:center;font-size:11.5px;font-weight:700;padding:6px 0 8px;}" +
 
       ".custbox{border:2px solid #8a2331;border-top:none;padding:8px 12px;font-size:12.5px;}" +
       ".custbox .r{display:flex;gap:18px;margin:3px 0;}" +
@@ -452,11 +498,12 @@
       "<div class='headband'>" +
       "<div class='headtop'><span class='no'>No.- " + escapeHtml(inv.receiptNo || inv.invoiceNo) + "</span><span>Mob.- " + escapeHtml(business.mobile || "—") + "</span></div>" +
       "<div class='logo-row'>" +
-      "<svg viewBox='0 0 100 100' width='46' height='46'><defs><linearGradient id='g" + inv.id + "' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='#2a78d6'/><stop offset='100%' stop-color='#4a3aa7'/></linearGradient></defs><polygon points='50,4 91,27 91,73 50,96 9,73 9,27' fill='url(#g" + inv.id + ")'/><polygon points='58,20 34,56 48,56 42,82 68,44 53,44 58,20' fill='#fff'/></svg>" +
+      scooterIconSvg(false) +
       "<div class='logo-word'><span class='m'>MASTER</span><span class='ev'>.EV</span></div>" +
+      scooterIconSvg(true) +
       "</div>" +
       "<div class='tagline'>" + escapeHtml(business.tagline || "Electric Scooty Sales, Service &amp; Spare Parts.") + "</div>" +
-      "<div class='addr'>📍 " + escapeHtml(business.address || "Address not set") + "</div>" +
+      addressStripeBarHtml(business.address) +
       "<div class='gstline'>GST IN : " + escapeHtml(business.gstin || "—") + "</div>" +
       "</div>" +
 
@@ -520,6 +567,203 @@
     win.document.close();
   }
 
+  /* ---------- printable hand bill — same information as the tax invoice, in a bold, ----------
+     multi-color "electric" card design rather than a carbon-copy-paper replica ---------- */
+  function buildHandbillHtml(hb) {
+    const v = getVehicle(hb.vehicleId) || {};
+    const gstAmount = hb.interState ? hb.igst : hb.cgst + hb.sgst;
+    const roundOff = Math.round((hb.total - (hb.taxableValue + gstAmount)) * 100) / 100;
+    const taxRows = hb.interState
+      ? "<div class='trow'><span>IGST</span><span class='num'>" + formatMoney(hb.igst) + "</span></div>"
+      : "<div class='trow'><span>CGST</span><span class='num'>" + formatMoney(hb.cgst) + "</span></div>" +
+        "<div class='trow'><span>SGST</span><span class='num'>" + formatMoney(hb.sgst) + "</span></div>";
+
+    const PALETTE = ["#4f46e5", "#06b6d4", "#7c3aed", "#db2777", "#f59e0b", "#10b981"];
+    const CHIP_COLORS = [
+      { bg: "#eef2ff", fg: "#4338ca" },
+      { bg: "#ecfeff", fg: "#0e7490" },
+      { bg: "#f5f3ff", fg: "#6d28d9" },
+      { bg: "#fdf2f8", fg: "#be185d" },
+      { bg: "#fffbeb", fg: "#b45309" },
+      { bg: "#ecfdf5", fg: "#047857" },
+    ];
+
+    const custCells = [
+      ["Name", hb.buyerName, ""],
+      ["Mobile No.", hb.buyerMobile, ""],
+      ["Address", hb.buyerAddress, " full"],
+      ["GST No.", hb.buyerGstin, ""],
+      ["Date", ddmmyy(hb.date), ""],
+    ];
+    const custGrid = custCells
+      .map(([k, val, cls], i) =>
+        "<div class='cell" + cls + "' style='border-top-color:" + PALETTE[i % PALETTE.length] + "'><div class='k'>" + escapeHtml(k) + "</div><div class='v'>" + escapeHtml(val || "—") + "</div></div>"
+      )
+      .join("");
+
+    const specs = [
+      ["Colour", v.colour],
+      ["Controller No.", v.controllerNo],
+      ["Motor No.", v.motorNo],
+      ["Chasis No.", v.chassisNo],
+      ["Charger No.", v.chargerNo],
+      ["Battery Company", v.batteryCompany],
+    ].filter(([, val]) => val);
+    const specGrid = specs
+      .map(([k, val], i) =>
+        "<div class='spec'><span class='k'><span class='dot' style='background:" + PALETTE[i % PALETTE.length] + "'></span>" + escapeHtml(k) + "</span><span class='v'>" + escapeHtml(val) + "</span></div>"
+      )
+      .join("");
+
+    const batteryLines = (v.batteryNumbers || "").split("\n").map((s) => s.trim()).filter(Boolean);
+    const batteryChips = batteryLines
+      .map((b, i) => {
+        const c = CHIP_COLORS[i % CHIP_COLORS.length];
+        return "<span class='chip' style='background:" + c.bg + ";color:" + c.fg + "'>" + (i + 1) + ". " + escapeHtml(b) + "</span>";
+      })
+      .join("");
+
+    const warrantyItems = (business.warrantyTerms || "").split("\n").map((s) => s.trim()).filter(Boolean);
+    const warrantyHtml = warrantyItems
+      .map((line, i) => "<div class='wline'><span class='wdot' style='background:" + PALETTE[i % PALETTE.length] + "'></span>" + escapeHtml(line) + "</div>")
+      .join("");
+
+    return (
+      "<!doctype html><html><head><meta charset='utf-8'><title>" + escapeHtml(hb.billNo) + "</title>" +
+      "<style>" +
+      "*{box-sizing:border-box;}" +
+      "body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#16181d;font-size:12.5px;background:linear-gradient(160deg,#eef2ff 0%,#f5f3ff 45%,#fdf2f8 100%);margin:0;padding:30px 16px;}" +
+      ".num{text-align:right;}" +
+      ".sheet{max-width:680px;margin:0 auto;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 30px 60px -24px rgba(124,58,237,0.38);}" +
+
+      ".hero{position:relative;background:radial-gradient(circle at 14% 20%,rgba(255,255,255,0.32),transparent 42%),radial-gradient(circle at 88% 86%,rgba(255,255,255,0.22),transparent 46%),linear-gradient(120deg,#4f46e5 0%,#7c3aed 38%,#db2777 72%,#f59e0b 100%);color:#fff;padding:20px 24px 18px;}" +
+      ".hero-top{display:flex;justify-content:space-between;font-size:11px;font-weight:800;}" +
+      ".badge{border-radius:999px;padding:4px 12px;letter-spacing:.02em;box-shadow:0 4px 10px rgba(0,0,0,0.12);}" +
+      ".brand{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0 4px;}" +
+      ".icon-badge{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}" +
+      ".brand-name{font-size:28px;font-weight:800;letter-spacing:-0.01em;line-height:1;text-align:center;text-shadow:0 2px 10px rgba(0,0,0,0.15);}" +
+      ".brand-name .dot{opacity:.85;font-weight:600;}" +
+      ".brand-tag{font-size:11.5px;opacity:.95;text-align:center;margin-top:4px;font-weight:600;}" +
+      ".hero-meta{text-align:center;font-size:11px;opacity:.92;margin-top:11px;}" +
+      ".hero-meta .sep{opacity:.6;margin:0 6px;}" +
+
+      ".scallop{height:16px;margin-top:-1px;background-image:radial-gradient(circle at 10px 0, transparent 10px, #fff 11px);background-size:20px 18px;background-repeat:repeat-x;}" +
+
+      ".body-pad{padding:4px 22px 20px;}" +
+
+      ".cust-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#eceef5;border:1px solid #eceef5;border-radius:12px;overflow:hidden;margin-top:12px;}" +
+      ".cust-grid .cell{background:#fff;padding:10px 14px;border-top:3px solid;}" +
+      ".cust-grid .cell.full{grid-column:1 / -1;}" +
+      ".cust-grid .k{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8a8fa3;margin-bottom:2px;}" +
+      ".cust-grid .v{font-size:13px;font-weight:700;color:#16181d;min-height:1.3em;}" +
+
+      ".item-card{border:1px solid #eceef5;border-radius:14px;margin-top:16px;overflow:hidden;box-shadow:0 10px 24px -16px rgba(79,70,229,0.35);}" +
+      ".item-top{display:flex;justify-content:space-between;align-items:center;gap:14px;background:linear-gradient(120deg,#f5f3ff,#fdf2f8);padding:14px 16px;}" +
+      ".item-title{font-size:15px;font-weight:800;color:#16181d;}" +
+      ".item-sub{font-size:10.5px;color:#8a8fa3;margin-top:2px;font-weight:600;}" +
+      ".item-amount{font-size:22px;font-weight:800;background:linear-gradient(120deg,#7c3aed,#db2777);-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap;}" +
+      ".spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;padding:14px 16px;}" +
+      ".spec{display:flex;justify-content:space-between;gap:10px;font-size:12px;border-bottom:1px dashed #eceef5;padding-bottom:6px;}" +
+      ".spec .k{color:#6b7280;display:flex;align-items:center;gap:6px;}" +
+      ".spec .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}" +
+      ".spec .v{font-weight:700;color:#16181d;text-align:right;}" +
+      ".battery-wrap{padding:2px 16px 16px;}" +
+      ".battery-wrap .lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8a8fa3;margin-bottom:7px;}" +
+      ".chip{display:inline-block;font-weight:800;font-size:11px;border-radius:999px;padding:4px 11px;margin:0 6px 6px 0;}" +
+
+      ".totals-wrap{display:flex;gap:14px;margin-top:16px;align-items:stretch;}" +
+      ".words-note{flex:1.2;background:linear-gradient(135deg,#f5f3ff,#fdf2f8);border-left:4px solid #7c3aed;border-radius:0 12px 12px 0;padding:12px 14px;font-size:12px;color:#565b72;}" +
+      ".words-note .lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8a8fa3;margin-bottom:4px;}" +
+      ".words-note .amt{font-weight:800;color:#16181d;}" +
+      ".totals{flex:1;border:1px solid #eceef5;border-radius:12px;padding:10px 14px;}" +
+      ".trow{display:flex;justify-content:space-between;font-size:12px;color:#565b72;padding:3px 0;}" +
+      ".total-bar{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(120deg,#10b981,#06b6d4,#4f46e5);color:#fff;border-radius:10px;padding:9px 13px;margin-top:8px;font-weight:800;font-size:15.5px;box-shadow:0 8px 18px -8px rgba(6,182,212,0.5);}" +
+      ".eoe{text-align:right;font-size:9.5px;color:#8a8fa3;margin-top:4px;}" +
+
+      ".footrow{display:flex;justify-content:space-between;align-items:flex-end;margin-top:24px;gap:20px;}" +
+      ".sig-line{border-top:1px solid #16181d;margin-top:34px;width:170px;font-size:11px;text-align:center;padding-top:5px;color:#565b72;}" +
+      ".forbox{text-align:center;}" +
+      ".forbox .label{font-size:12px;font-weight:700;margin-bottom:4px;color:#16181d;}" +
+
+      ".warranty{margin-top:20px;padding-top:12px;border-top:1px dashed #eceef5;font-size:9.5px;color:#6b7280;}" +
+      ".warranty .wline{display:flex;gap:7px;align-items:flex-start;margin-bottom:4px;}" +
+      ".warranty .wdot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}" +
+
+      "@media print{body{background:#fff;padding:0;}.sheet{box-shadow:none;border-radius:0;}.noprint{display:none;}}" +
+      "</style></head><body>" +
+
+      "<div class='sheet'>" +
+
+      "<div class='hero'>" +
+      "<div class='hero-top'><span class='badge' style='background:#f59e0b'>No. " + escapeHtml(hb.receiptNo || hb.billNo) + "</span><span class='badge' style='background:#06b6d4'>Mob. " + escapeHtml(business.mobile || "—") + "</span></div>" +
+      "<div class='brand'>" +
+      "<span class='icon-badge'>" + scooterIconSvg(false, "#ffffff") + "</span>" +
+      "<div><div class='brand-name'>MASTER<span class='dot'>.EV</span></div><div class='brand-tag'>⚡ " + escapeHtml(business.tagline || "Electric Scooty Sales, Service &amp; Spare Parts.") + "</div></div>" +
+      "<span class='icon-badge'>" + scooterIconSvg(true, "#ffffff") + "</span>" +
+      "</div>" +
+      "<div class='hero-meta'>📍 " + escapeHtml(business.address || "Address not set") + "<span class='sep'>·</span>GSTIN " + escapeHtml(business.gstin || "—") + "</div>" +
+      "</div>" +
+      "<div class='scallop'></div>" +
+
+      "<div class='body-pad'>" +
+
+      "<div class='cust-grid'>" + custGrid + "</div>" +
+
+      "<div class='item-card'>" +
+      "<div class='item-top'><div><div class='item-title'>" + escapeHtml(hb.vehicleLabel) + "</div><div class='item-sub'>Qty 1 · Rate " + formatMoney(hb.taxableValue) + "</div></div><div class='item-amount'>" + formatMoney(hb.total) + "</div></div>" +
+      (specGrid ? "<div class='spec-grid'>" + specGrid + "</div>" : "") +
+      (batteryChips ? "<div class='battery-wrap'><div class='lbl'>Battery No.</div>" + batteryChips + "</div>" : "") +
+      "</div>" +
+
+      "<div class='totals-wrap'>" +
+      "<div class='words-note'><div class='lbl'>Amount in words</div>Rupees <span class='amt'>" + escapeHtml(amountInWords(hb.total).replace(/^Rupees /, "")) + "</span></div>" +
+      "<div class='totals'>" +
+      "<div class='trow'><span>Item Value</span><span class='num'>" + formatMoney(hb.taxableValue) + "</span></div>" +
+      taxRows +
+      "<div class='trow'><span>Round off</span><span class='num'>" + (Math.round(roundOff) ? formatMoney(roundOff) : "—") + "</span></div>" +
+      "<div class='total-bar'><span>TOTAL</span><span>" + formatMoney(hb.total) + "/-</span></div>" +
+      "<div class='eoe'>E. &amp; O. E.</div>" +
+      "</div>" +
+      "</div>" +
+
+      "<div class='footrow'>" +
+      "<div><div class='sig-line'>Customer Signature</div></div>" +
+      "<div class='forbox'>" +
+      "<div class='label'>For, Master.EV</div>" +
+      "<svg viewBox='0 0 140 140' width='84' height='84'>" +
+      "<defs><linearGradient id='sg" + hb.id + "' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='#7c3aed'/><stop offset='100%' stop-color='#db2777'/></linearGradient><path id='circletop" + hb.id + "' d='M 20,70 A 50,50 0 0 1 120,70'/><path id='circlebot" + hb.id + "' d='M 120,70 A 50,50 0 0 1 20,70'/></defs>" +
+      "<circle cx='70' cy='70' r='58' fill='none' stroke='url(#sg" + hb.id + ")' stroke-width='2.5'/>" +
+      "<circle cx='70' cy='70' r='50' fill='none' stroke='#db2777' stroke-width='1'/>" +
+      "<text font-size='11' font-weight='700' fill='#7c3aed'><textPath href='#circletop" + hb.id + "' startOffset='50%' text-anchor='middle'>MASTER.EV</textPath></text>" +
+      "<text font-size='8' fill='#db2777'><textPath href='#circlebot" + hb.id + "' startOffset='50%' text-anchor='middle'>" + escapeHtml((business.address || "").slice(0, 40)) + "</textPath></text>" +
+      "<text x='70' y='75' font-size='13' text-anchor='middle' fill='#f59e0b'>★</text>" +
+      "</svg>" +
+      "</div>" +
+      "</div>" +
+
+      "<div class='warranty'>" + warrantyHtml + "</div>" +
+
+      "</div>" +
+      "</div>" +
+
+      "<div class='noprint' style='margin-top:20px;text-align:center;'><button onclick='window.print()' style='font-size:14px;padding:10px 22px;cursor:pointer;border:none;border-radius:10px;background:linear-gradient(120deg,#4f46e5,#7c3aed,#db2777);color:#fff;font-weight:700;box-shadow:0 10px 24px -10px rgba(124,58,237,0.6);'>Print / Save as PDF</button></div>" +
+      "</body></html>"
+    );
+  }
+
+  function printHandbill(handbillId) {
+    const hb = handbills.find((h) => h.id === handbillId);
+    if (!hb) return;
+    const win = window.open("", "_blank", "width=820,height=1000");
+    if (!win) {
+      toast("Please allow pop-ups to view/print the hand bill");
+      return;
+    }
+    win.document.open();
+    win.document.write(buildHandbillHtml(hb));
+    win.document.close();
+  }
+
   function toast(msg) {
     const el = document.getElementById("toast");
     el.textContent = msg;
@@ -572,6 +816,7 @@
     hsnCode: document.getElementById("biz-hsn"),
     gstRate: document.getElementById("biz-gst-rate"),
     invoicePrefix: document.getElementById("biz-invoice-prefix"),
+    handbillPrefix: document.getElementById("biz-handbill-prefix"),
     warrantyTerms: document.getElementById("biz-warranty-terms"),
   };
   Object.keys(bizFields).forEach((key) => {
@@ -870,6 +1115,103 @@
     toast("Invoice " + invoice.invoiceNo + " generated");
   });
 
+  /* ---------- hand bill dialog ---------- */
+  function unbilledSales() {
+    return sales.filter((s) => !handbillForSale(s.id));
+  }
+
+  function updateHandbillSummary() {
+    const saleId = document.getElementById("handbill-sale-select").value;
+    const sale = sales.find((s) => s.id === saleId);
+    const summaryEl = document.getElementById("handbill-vehicle-summary");
+    const nameInput = document.getElementById("handbill-buyer-name");
+    if (!sale) {
+      summaryEl.textContent = "";
+      return;
+    }
+    const v = getVehicle(sale.vehicleId);
+    summaryEl.textContent = (v ? vehicleLabel(v) : "Vehicle") + " · Sale price " + formatMoney(sale.salePrice) + " · " + formatDate(sale.saleDate);
+    if (!nameInput.dataset.touched) {
+      nameInput.value = sale.buyer || "";
+      document.getElementById("handbill-buyer-mobile").value = sale.contact || "";
+    }
+  }
+
+  function openHandbillDialog(preselectSaleId) {
+    const candidates = unbilledSales();
+    if (candidates.length === 0) {
+      toast("Every sale already has a hand bill");
+      return;
+    }
+    const sel = document.getElementById("handbill-sale-select");
+    sel.innerHTML = "";
+    candidates
+      .slice()
+      .sort((a, b) => (b.saleDate || "").localeCompare(a.saleDate || ""))
+      .forEach((s) => {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = saleOptionLabel(s);
+        sel.appendChild(opt);
+      });
+    if (preselectSaleId && candidates.some((s) => s.id === preselectSaleId)) sel.value = preselectSaleId;
+
+    const nameInput = document.getElementById("handbill-buyer-name");
+    nameInput.value = "";
+    delete nameInput.dataset.touched;
+    nameInput.addEventListener("input", () => { nameInput.dataset.touched = "1"; }, { once: true });
+    document.getElementById("handbill-buyer-address").value = "";
+    document.getElementById("handbill-buyer-mobile").value = "";
+    document.getElementById("handbill-buyer-gstin").value = "";
+    document.getElementById("handbill-supply-type").value = "intra";
+    document.getElementById("handbill-gst-rate").value = business.gstRate || 5;
+    document.getElementById("handbill-hsn").value = business.hsnCode || "8711";
+    document.getElementById("handbill-receipt-no").value = "";
+    updateHandbillSummary();
+    openDialog("dlg-handbill");
+  }
+
+  document.getElementById("handbill-sale-select").addEventListener("change", updateHandbillSummary);
+  document.getElementById("btn-new-handbill").addEventListener("click", () => openHandbillDialog());
+
+  document.getElementById("form-handbill").addEventListener("submit", () => {
+    const saleId = document.getElementById("handbill-sale-select").value;
+    const sale = sales.find((s) => s.id === saleId);
+    if (!sale) return;
+    const v = getVehicle(sale.vehicleId);
+    const gstRate = Number(document.getElementById("handbill-gst-rate").value || 0);
+    const interState = document.getElementById("handbill-supply-type").value === "inter";
+    const gst = computeGst(Number(sale.salePrice || 0), gstRate, interState);
+
+    const handbill = {
+      id: uid("hb"),
+      billNo: nextHandbillNumber(sale.saleDate),
+      date: sale.saleDate || todayISO(),
+      saleId: sale.id,
+      vehicleId: sale.vehicleId,
+      vehicleLabel: v ? vehicleLabel(v) : "Vehicle",
+      hsnCode: document.getElementById("handbill-hsn").value.trim(),
+      receiptNo: document.getElementById("handbill-receipt-no").value.trim(),
+      buyerName: document.getElementById("handbill-buyer-name").value.trim() || sale.buyer || "",
+      buyerAddress: document.getElementById("handbill-buyer-address").value.trim(),
+      buyerMobile: document.getElementById("handbill-buyer-mobile").value.trim() || sale.contact || "",
+      buyerGstin: document.getElementById("handbill-buyer-gstin").value.trim(),
+      interState,
+      gstRate,
+      taxableValue: gst.taxableValue,
+      cgst: gst.cgst,
+      sgst: gst.sgst,
+      igst: gst.igst,
+      total: gst.total,
+    };
+    handbills.push(handbill);
+    business.nextHandbillNo = Number(business.nextHandbillNo || 1) + 1;
+    persist();
+    closeDialog("dlg-handbill");
+    renderAll();
+    toast("Hand bill " + handbill.billNo + " generated");
+  });
+
   /* ================= stock table ================= */
   const stockSearch = document.getElementById("stock-search");
   const stockFilter = document.getElementById("stock-filter");
@@ -994,6 +1336,21 @@
         }
         wrap.appendChild(invBtn);
 
+        const existingHandbill = handbillForSale(s.id);
+        const hbBtn = document.createElement("button");
+        if (existingHandbill) {
+          hbBtn.className = "icon-btn accent";
+          hbBtn.title = "View / print hand bill " + existingHandbill.billNo;
+          hbBtn.innerHTML = ICONS.eye + '<span class="sr-only">View hand bill</span>';
+          hbBtn.addEventListener("click", () => printHandbill(existingHandbill.id));
+        } else {
+          hbBtn.className = "icon-btn accent";
+          hbBtn.title = "Generate hand bill";
+          hbBtn.innerHTML = ICONS.receipt + '<span class="sr-only">Generate hand bill</span>';
+          hbBtn.addEventListener("click", () => openHandbillDialog(s.id));
+        }
+        wrap.appendChild(hbBtn);
+
         const delBtn = document.createElement("button");
         delBtn.className = "icon-btn danger";
         delBtn.title = "Delete";
@@ -1002,6 +1359,7 @@
           if (confirm("Delete this sale? The vehicle will return to in-stock.")) {
             sales = sales.filter((x) => x.id !== s.id);
             invoices = invoices.filter((x) => x.saleId !== s.id);
+            handbills = handbills.filter((x) => x.saleId !== s.id);
             if (v) v.status = "in_stock";
             persist();
             renderAll();
@@ -1516,6 +1874,7 @@
     renderDashboard();
     renderReports();
     renderInvoices();
+    renderHandbills();
   }
 
   /* ================= invoices table (Billing tab) ================= */
@@ -1563,6 +1922,60 @@
             persist();
             renderAll();
             toast("Invoice deleted");
+          }
+        });
+        wrap.appendChild(delBtn);
+
+        actionsTd.appendChild(wrap);
+        tbody.appendChild(tr);
+      });
+  }
+
+  /* ================= hand bills table (Billing tab) ================= */
+  function renderHandbills() {
+    const tbody = document.querySelector("#table-handbills tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    document.getElementById("handbills-empty").classList.toggle("hidden", handbills.length !== 0);
+    document.getElementById("handbills-sub").textContent =
+      handbills.length ? handbills.length + " hand bill" + (handbills.length === 1 ? "" : "s") + " generated" : "Generate one from a row in the Sales tab";
+
+    handbills
+      .slice()
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+      .forEach((hb) => {
+        const gstTotal = hb.interState ? hb.igst : hb.cgst + hb.sgst;
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + escapeHtml(hb.billNo) + "</td>" +
+          "<td>" + formatDate(hb.date) + "</td>" +
+          "<td><div class=\"vehicle-cell\"><span class=\"vehicle-avatar\">" + ICONS.car + "</span>" + escapeHtml(hb.vehicleLabel) + "</div></td>" +
+          "<td>" + escapeHtml(hb.buyerName || "—") + "</td>" +
+          "<td class=\"num\">" + formatMoney(hb.taxableValue) + "</td>" +
+          "<td class=\"num\">" + formatMoney(gstTotal) + "</td>" +
+          "<td class=\"num\">" + formatMoney(hb.total) + "</td>" +
+          "<td class=\"actions-col\"></td>";
+        const actionsTd = tr.querySelector("td.actions-col");
+        const wrap = document.createElement("div");
+        wrap.className = "row-actions";
+
+        const viewBtn = document.createElement("button");
+        viewBtn.className = "icon-btn accent";
+        viewBtn.title = "View / print";
+        viewBtn.innerHTML = ICONS.printer + '<span class="sr-only">View / print</span>';
+        viewBtn.addEventListener("click", () => printHandbill(hb.id));
+        wrap.appendChild(viewBtn);
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "icon-btn danger";
+        delBtn.title = "Delete hand bill";
+        delBtn.innerHTML = ICONS.trash + '<span class="sr-only">Delete</span>';
+        delBtn.addEventListener("click", () => {
+          if (confirm("Delete hand bill " + hb.billNo + "? This cannot be undone.")) {
+            handbills = handbills.filter((x) => x.id !== hb.id);
+            persist();
+            renderAll();
+            toast("Hand bill deleted");
           }
         });
         wrap.appendChild(delBtn);

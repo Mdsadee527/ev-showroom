@@ -297,6 +297,7 @@
           <label>HSN code<input type="text" id="biz-hsn" placeholder="e.g. 8711"></label>
           <label>Default GST rate (%)<input type="number" id="biz-gst-rate" min="0" max="28" step="0.1"></label>
           <label>Invoice number prefix<input type="text" id="biz-invoice-prefix" placeholder="e.g. INV"></label>
+          <label>Hand bill number prefix<input type="text" id="biz-handbill-prefix" placeholder="e.g. HB"></label>
         </div>
         <label class="full" style="margin-top:12px;">Warranty terms (one per line, printed on every customer bill)<textarea id="biz-warranty-terms" rows="6"></textarea></label>
       </div>
@@ -327,6 +328,34 @@
           </table>
         </div>
         <p class="empty-state hidden" id="invoices-empty">No invoices generated yet. Open the Sales tab and use "Generate invoice" on a sale.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>Hand Bills</h2>
+            <p class="card-sub" id="handbills-sub">Pick a sale, fill in the customer's details, and generate</p>
+          </div>
+          <button class="btn btn-primary" id="btn-new-handbill" type="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New hand bill</button>
+        </div>
+        <div class="table-wrap">
+          <table id="table-handbills">
+            <thead>
+              <tr>
+                <th>Bill #</th>
+                <th>Date</th>
+                <th>Vehicle</th>
+                <th>Buyer</th>
+                <th class="num">Taxable value</th>
+                <th class="num">GST</th>
+                <th class="num">Total</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="empty-state hidden" id="handbills-empty">No hand bills generated yet. Open the Sales tab and use "Generate hand bill" on a sale.</p>
       </div>
     </section>
 
@@ -447,6 +476,36 @@
     <div class="dlg-actions">
       <button type="button" class="btn btn-ghost" data-close>Cancel</button>
       <button type="submit" class="btn btn-primary">Generate invoice</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-handbill">
+  <form method="dialog" id="form-handbill" class="dlg-form">
+    <h2>Generate hand bill</h2>
+    <div class="field-grid">
+      <label class="full">Sale to bill<select id="handbill-sale-select" required></select></label>
+    </div>
+    <p class="card-sub" id="handbill-vehicle-summary"></p>
+    <div class="field-grid">
+      <label class="full">Customer name<input type="text" id="handbill-buyer-name" placeholder="e.g. Rahul Verma"></label>
+      <label class="full">Customer address<input type="text" id="handbill-buyer-address" placeholder="Street, City, PIN"></label>
+      <label>Customer phone<input type="text" id="handbill-buyer-mobile" placeholder="e.g. 9830012345"></label>
+      <label>Customer GSTIN (optional)<input type="text" id="handbill-buyer-gstin" maxlength="15" placeholder="Leave blank for B2C"></label>
+      <label>Supply type
+        <select id="handbill-supply-type">
+          <option value="intra">Intra-state (CGST + SGST)</option>
+          <option value="inter">Inter-state (IGST)</option>
+        </select>
+      </label>
+      <label>GST rate (%)<input type="number" id="handbill-gst-rate" min="0" max="28" step="0.1"></label>
+      <label>HSN code<input type="text" id="handbill-hsn"></label>
+      <label>Receipt book no. (optional)<input type="text" id="handbill-receipt-no" placeholder="e.g. Q54"></label>
+    </div>
+    <p class="card-sub">Sale price is treated as GST-inclusive — taxable value and tax are split out automatically.</p>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Generate hand bill</button>
     </div>
   </form>
 </dialog>
